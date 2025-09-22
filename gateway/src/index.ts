@@ -42,9 +42,9 @@ app.use(
   createProxyMiddleware({
     target: process.env.CONSULTAS_API_URL || "http://consultas-api:4000",
     changeOrigin: true,
-    pathRewrite: { "^/consultas": "" },
   })
 );
+
 
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
