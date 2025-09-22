@@ -1,5 +1,6 @@
 version: "3.8"
 
+
 services:
   admin-db:
     image: mariadb:10.11
