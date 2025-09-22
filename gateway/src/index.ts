@@ -6,8 +6,20 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 dotenv.config();
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Timeout middleware para el gateway
+app.use((req, res, next) => {
+  req.setTimeout(70000); // 70 segundos
+  res.setTimeout(70000);
+  next();
+});
 
 // Gateway healthcheck
 app.get("/health", (_req, res) => {
