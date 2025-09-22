@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  admin-db:
+    image: mariadb:10.11
+    container_name: admin-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: admin_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3307:3306"
+    volumes:
+      - admin_data:/var/lib/mysql
+
+  admin-api:
+    build: ./admin-api
+    container_name: admin-api
+    restart: always
+    env_file:
+      - ./admin-api/.env.docker
+    depends_on:
+      - admin-db
+    ports:
+      - "3000:3000"
+
+  consultas-db:
+    image: mariadb:10.11
+    container_name: consultas-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: consultas_db
+      MYSQL_USER: consultas
+      MYSQL_PASSWORD: consultas123
+    ports:
+      - "3308:3306"
+    volumes:
+      - consultas_data:/var/lib/mysql
+
+  consultas-api:
+    build: ./consultas-api
+    container_name: consultas-api
+    restart: always
+    env_file:
+      - ./consultas-api/.env.docker
+    depends_on:
+      - consultas-db
+    ports:
+      - "4000:4000"
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    restart: always
+    env_file:
+      - ./gateway/.env.docker
+    depends_on:
+      - admin-api
+      - consultas-api
+    ports:
+      - "8080:8080"
+
+
+volumes:
+  admin_data:
+  consultas_data:

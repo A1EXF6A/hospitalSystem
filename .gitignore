@@ -1,0 +1,87 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Archivos de distribución y build
+dist/
+build/
+out/
+
+# Archivos de TypeScript compilados
+*.js
+*.js.map
+!jest.config.js
+!webpack.config.js
+
+# Archivos de logs
+logs
+*.log
+
+# Archivos de entorno y configuración sensible
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Archivos temporales del sistema operativo
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de coverage y testing
+coverage/
+*.lcov
+.nyc_output
+
+# Archivos de caché
+.npm
+.eslintcache
+.parcel-cache/
+.cache/
+
+# Docker volumes y archivos temporales
+.dockerignore
+docker-compose.override.yml
+
+# Base de datos local
+*.sqlite
+*.db
+data/
+
+# Certificados y claves
+*.pem
+*.key
+*.crt
+
+# Archivos de backup
+*.bak
+*.backup
+*.tmp
+
+# Archivos específicos de TypeORM (si usas migraciones locales)
+# Descomenta si no quieres versionar las migraciones
+# src/migrations/*.js
+
+# PM2 logs
+pm2.log
