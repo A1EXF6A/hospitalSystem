@@ -1,6 +1,27 @@
 # Gateway API .NET
 
-Gateway construido en .NET 8 para el sistema hospitalario.
+Gateway construido en .NET 8 con arquitectura limpia y desacoplada para el sistema hospitalario.
+
+## Arquitectura
+
+```
+gateway-api/
+├── Controllers/           # Controladores (Health, etc.)
+├── Services/             # Lógica de negocio (ProxyService)
+├── Middleware/           # Middleware personalizado (ProxyMiddleware)
+├── Configuration/        # Configuración y extensiones
+├── Program.cs           # Punto de entrada simplificado
+└── appsettings.json     # Configuración de la aplicación
+```
+
+## Características
+
+- ✅ **Arquitectura limpia** - Separación de responsabilidades
+- ✅ **Configuración flexible** - Via appsettings.json y variables de entorno
+- ✅ **Logging integrado** - Logs detallados para debugging
+- ✅ **Manejo de errores robusto** - Respuestas consistentes en caso de fallas
+- ✅ **Inyección de dependencias** - Testeable y mantenible
+- ✅ **Timeout configurable** - Control de tiempos de respuesta
 
 ## Ejecutar localmente
 
@@ -20,36 +41,77 @@ dotnet watch run
 
 ## Configuración
 
-El gateway se ejecuta por defecto en el puerto 5000 y se conecta a:
-- Admin API: http://localhost:3000
-- Consultas API: http://localhost:4000
+### appsettings.json
+```json
+{
+  "Gateway": {
+    "AdminApiUrl": "http://localhost:3000",
+    "ConsultasApiUrl": "http://localhost:4000",
+    "TimeoutSeconds": 60,
+    "EnableLogging": true
+  }
+}
+```
+
+### Variables de entorno (sobrescriben appsettings.json)
+- `Gateway__AdminApiUrl` - URL de la Admin API
+- `Gateway__ConsultasApiUrl` - URL de la Consultas API
+- `Gateway__TimeoutSeconds` - Timeout en segundos
+- `ASPNETCORE_URLS` - URL donde escucha el gateway
 
 ## Endpoints
 
-- `GET /health` - Health check del gateway
+- `GET /health` - Health check completo del gateway
 - `/admin/*` - Proxy a Admin API
 - `/consultas/*` - Proxy a Consultas API
-
-## Variables de entorno
-
-- `ADMIN_API_URL` - URL de la Admin API (default: http://localhost:3000)
-- `CONSULTAS_API_URL` - URL de la Consultas API (default: http://localhost:4000)
-- `ASPNETCORE_URLS` - URL donde escucha el gateway (default: http://localhost:5000)
 
 ## Ejemplos de uso
 
 ```bash
-# Health check
-curl http://localhost:5000/health
+# Health check (incluye información de servicios)
+curl http://localhost:5158/health
 
 # Listar centros través del gateway
-curl http://localhost:5000/admin/centros
+curl http://localhost:5158/admin/centros
 
 # Crear centro través del gateway
-curl -X POST http://localhost:5000/admin/centros \
+curl -X POST http://localhost:5158/admin/centros \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Centro Test","direccion":"Av. Test 123","ciudad":"Quito","telefono":"0999999999"}'
 
 # Listar consultas través del gateway
-curl http://localhost:5000/consultas/consultas
+curl http://localhost:5158/consultas/consultas
+
+# Crear consulta través del gateway
+curl -X POST http://localhost:5158/consultas/consultas \
+  -H "Content-Type: application/json" \
+  -d '{"paciente":"Test Patient","doctorId":1,"centroId":1,"fecha":"2025-09-25T10:00:00","notas":"Test","estado":"programada"}'
 ```
+
+## Desarrollo
+
+### Agregar nuevos servicios
+
+1. Actualizar `GatewayOptions.cs` con la nueva URL
+2. Modificar `ProxyMiddleware.cs` para agregar el nuevo path
+3. Actualizar `appsettings.json` con la configuración
+
+### Testing
+
+```bash
+# Ejecutar tests (cuando se agreguen)
+dotnet test
+
+# Verificar cobertura de código
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+## Logging
+
+El gateway incluye logging detallado:
+- Requests entrantes
+- Respuestas de servicios backend  
+- Errores y excepciones
+- Métricas de performance
+
+Los logs se pueden configurar en `appsettings.json` bajo la sección `Logging`.
