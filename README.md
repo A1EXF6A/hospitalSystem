@@ -4,11 +4,12 @@ Sistema de gestión hospitalaria construido con microservicios usando Node.js, T
 
 ## Arquitectura del Sistema
 
-El sistema está compuesto por tres servicios principales:
+El sistema está compuesto por servicios principales:
 
 - **Admin API** (Puerto 3000): Gestión de centros, empleados, especialidades y médicos
 - **Consultas API** (Puerto 4000): Gestión de consultas médicas y reportes
-- **Gateway** (Puerto 8080): Proxy que unifica el acceso a ambas APIs
+- **Gateway Node.js** (Puerto 8080): Proxy construido con Express y http-proxy-middleware
+- **Gateway .NET** (Puerto 5000): Gateway alternativo construido con .NET 8 (Recomendado)
 
 ## Tecnologías Utilizadas
 
@@ -36,11 +37,15 @@ hospital-system/
 │   │   └── routes/
 │   ├── Dockerfile
 │   └── package.json
-├── gateway/                # Gateway/Proxy
+├── gateway/                # Gateway Node.js
 │   ├── src/
 │   │   └── index.ts
 │   ├── Dockerfile
 │   └── package.json
+├── gateway-api/            # Gateway .NET (Recomendado)
+│   ├── Program.cs
+│   ├── gateway-api.csproj
+│   └── appsettings.json
 └── docker-compose.yml      # Configuración de contenedores
 ```
 
@@ -161,7 +166,14 @@ npm install
 npm run dev
 ```
 
-**Terminal 3 - Gateway:**
+**Terminal 3 - Gateway (.NET - Recomendado):**
+```bash
+cd gateway-api
+dotnet restore
+dotnet run
+```
+
+**O Gateway Node.js (Alternativo):**
 ```bash
 cd gateway
 npm install
@@ -170,7 +182,8 @@ npm run dev
 
 #### Endpoints disponibles en local
 
-- **Gateway**: http://localhost:8080
+- **Gateway .NET**: http://localhost:5000 (Recomendado)
+- **Gateway Node.js**: http://localhost:8080 (Alternativo)
 - **Admin API**: http://localhost:3000
 - **Consultas API**: http://localhost:4000
 - **Documentación Swagger**:
@@ -224,9 +237,9 @@ npm run dev
 
 ## Ejemplos de Uso
 
-### Crear un Centro Médico
+### Crear un Centro Médico (usando Gateway .NET)
 ```bash
-curl -X POST http://localhost:8080/admin/centros \
+curl -X POST http://localhost:5000/admin/centros \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "Hospital General",
@@ -236,9 +249,9 @@ curl -X POST http://localhost:8080/admin/centros \
   }'
 ```
 
-### Crear una Consulta
+### Crear una Consulta (usando Gateway .NET)
 ```bash
-curl -X POST http://localhost:8080/consultas/consultas \
+curl -X POST http://localhost:5000/consultas/consultas \
   -H "Content-Type: application/json" \
   -d '{
     "paciente": "Juan Pérez",
