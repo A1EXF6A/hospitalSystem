@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.10",
-    "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.15.0",
+    "express": "^4.21.2",
+    "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",

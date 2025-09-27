@@ -1,16 +1,16 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { Consulta } from "./entities/Consulta";
+import { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } from "./env";
 
 export const AppDataSource = new DataSource({
-  type: "mariadb", // o postgres si prefieres
-  host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT) || 3307,
-  username: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "root",
-  database: process.env.DB_NAME || "consultas_db",
-  synchronize: true, // ⚠️ en prod: false, usar migraciones
+  type: "postgres",
+  host: DB_HOST,
+  port: DB_PORT,
+  username: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  synchronize: false,
   logging: true,
-  entities: [Consulta],
-  migrations: [__dirname + "/migrations/*{.ts,.js}"],
+  entities: ["src/entities/*{.ts,.js}"],
+  migrations: ["src/migrations/*{.ts,.js}"],
 });
