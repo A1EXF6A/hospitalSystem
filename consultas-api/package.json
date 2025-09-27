@@ -9,8 +9,10 @@
     "typeorm": "ts-node-dev ./node_modules/typeorm/cli.js -d src/data-source.ts"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.0",
     "reflect-metadata": "^0.2.2",
     "swagger-jsdoc": "^6.2.8",

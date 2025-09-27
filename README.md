@@ -8,8 +8,7 @@ El sistema está compuesto por servicios principales:
 
 - **Admin API** (Puerto 3000): Gestión de centros, empleados, especialidades y médicos
 - **Consultas API** (Puerto 4000): Gestión de consultas médicas y reportes
-- **Gateway Node.js** (Puerto 8080): Proxy construido con Express y http-proxy-middleware
-- **Gateway .NET** (Puerto 5000): Gateway alternativo construido con .NET 8 (Recomendado)
+- **Gateway .NET** (Puerto 5000): Gateway construido con .NET 8
 
 ## Tecnologías Utilizadas
 
@@ -37,12 +36,7 @@ hospital-system/
 │   │   └── routes/
 │   ├── Dockerfile
 │   └── package.json
-├── gateway/                # Gateway Node.js
-│   ├── src/
-│   │   └── index.ts
-│   ├── Dockerfile
-│   └── package.json
-├── gateway-api/            # Gateway .NET (Recomendado)
+├── gateway-api/            # Gateway .NET
 │   ├── Program.cs
 │   ├── gateway-api.csproj
 │   └── appsettings.json
@@ -86,14 +80,10 @@ docker-compose ps
 # Ver logs
 docker logs admin-api
 docker logs consultas-api
-docker logs gateway
 ```
 
 #### Endpoints disponibles con Docker
 
-- **Gateway**: http://localhost:8080
-  - Admin API a través del gateway: http://localhost:8080/admin/*
-  - Consultas API a través del gateway: http://localhost:8080/consultas/*
 - **Admin API directa**: http://localhost:3000
 - **Consultas API directa**: http://localhost:4000
 - **Documentación Swagger**:
@@ -143,12 +133,7 @@ PORT=4000
 NODE_ENV=development
 ```
 
-**gateway/.env**
-```env
-PORT=8080
-ADMIN_API_URL=http://localhost:3000
-CONSULTAS_API_URL=http://localhost:4000
-```
+
 
 3. **Instalar dependencias y ejecutar cada servicio**
 
@@ -166,24 +151,16 @@ npm install
 npm run dev
 ```
 
-**Terminal 3 - Gateway (.NET - Recomendado):**
+**Terminal 3 - Gateway (.NET):**
 ```bash
 cd gateway-api
 dotnet restore
 dotnet run
 ```
 
-**O Gateway Node.js (Alternativo):**
-```bash
-cd gateway
-npm install
-npm run dev
-```
-
 #### Endpoints disponibles en local
 
-- **Gateway .NET**: http://localhost:5000 (Recomendado)
-- **Gateway Node.js**: http://localhost:8080 (Alternativo)
+- **Gateway .NET**: http://localhost:5000
 - **Admin API**: http://localhost:3000
 - **Consultas API**: http://localhost:4000
 - **Documentación Swagger**:

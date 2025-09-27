@@ -6,6 +6,12 @@ export class ConsultaController {
   static async create(req: Request, res: Response) {
     try {
       const repo = AppDataSource.getRepository(Consulta);
+      
+      // If centroId is set by middleware (for medicos), enforce it in the creation
+      if (req.query.centroId && req.user?.role === 'medico') {
+        req.body.centroId = Number(req.query.centroId);
+      }
+      
       const consulta = repo.create(req.body);
       await repo.save(consulta);
       res.status(201).json(consulta);
@@ -15,10 +21,17 @@ export class ConsultaController {
     }
   }
 
-  static async getAll(_req: Request, res: Response) {
+  static async getAll(req: Request, res: Response) {
     try {
       const repo = AppDataSource.getRepository(Consulta);
-      const consultas = await repo.find();
+      
+      // Build where clause - if centroId is set by middleware (for medicos), use it
+      let where: any = {};
+      if (req.query.centroId) {
+        where.centroId = Number(req.query.centroId);
+      }
+      
+      const consultas = await repo.find({ where });
       res.json(consultas);
     } catch (error) {
       console.error('Error getting consultas:', error);
@@ -70,6 +83,12 @@ export class ConsultaController {
       const { from, to } = req.query;
 
       let where: any = { doctorId };
+      
+      // If centroId is set by middleware (for medicos), filter by it
+      if (req.query.centroId) {
+        where.centroId = Number(req.query.centroId);
+      }
+      
       if (from || to) {
         where.fecha = {};
         if (from) where.fecha.$gte = new Date(String(from));

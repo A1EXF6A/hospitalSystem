@@ -52,18 +52,6 @@ services:
     ports:
       - "4000:4000"
 
-  gateway:
-    build: ./gateway
-    container_name: gateway
-    restart: always
-    env_file:
-      - ./gateway/.env.docker
-    depends_on:
-      - admin-api
-      - consultas-api
-    ports:
-      - "8080:8080"
-
 
 volumes:
   admin_data:

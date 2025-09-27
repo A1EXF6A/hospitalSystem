@@ -4,6 +4,7 @@ import { Centro } from "./entities/Centro";
 import { Medico } from "./entities/Medico";
 import { Empleado } from "./entities/Empleado";
 import { Especialidad } from "./entities/Especialidad";
+import { Usuario } from "./entities/Usuario";
 
 export const AppDataSource = new DataSource({
   type: "mariadb",
@@ -14,6 +15,6 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "admin_db",
   synchronize: true,
   logging: true,
-  entities: [Centro, Medico, Empleado, Especialidad],
+  entities: [Centro, Medico, Empleado, Especialidad, Usuario],
   migrations: [__dirname + "/migrations/*{.ts,.js}"],
 });
