@@ -1,6 +1,6 @@
 # 🏥 Sistema de Gestión Hospitalaria
 
-Sistema completo de gestión hospitalaria construido con arquitectura de microservicios, utilizando Node.js, TypeScript, React y .NET. Diseñado para la administración integral de centros médicos, personal, consultas y reportes.
+Sistema completo de gestión hospitalaria construido con arquitectura de microservicios, utilizando Node.js, TypeScript y .NET. Diseñado para la administración integral de centros médicos, personal, consultas y reportes.
 
 ## 🏗️ Arquitectura del Sistema
 
@@ -8,15 +8,12 @@ El sistema implementa una arquitectura de microservicios completamente funcional
 
 ```mermaid
 graph TB
-    A[🌐 Frontend React] --> B[🔀 Gateway .NET]
-    A --> C[⚕️ Admin API]
-    A --> D[📋 Consultas API]
-    B --> C
-    B --> D
+    B[🔀 Gateway .NET]
+    B --> C[⚕️ Admin API]
+    B --> D[📋 Consultas API]
     C --> E[🗄️ Admin DB]
     D --> F[🗄️ Consultas DB]
     
-    style A fill:#61dafb
     style B fill:#512bd4
     style C fill:#339933
     style D fill:#339933
@@ -28,7 +25,6 @@ graph TB
 
 | Servicio | Puerto | Tecnología | Propósito |
 |----------|--------|------------|-----------|
-| **🌐 Frontend** | 3001 | React + TypeScript | Interfaz de usuario responsive |
 | **🔀 Gateway API** | 5158 | .NET 8 | Punto de entrada unificado y autenticación |
 | **⚕️ Admin API** | 3000 | Node.js + TypeScript | Gestión de centros, personal y usuarios |
 | **📋 Consultas API** | 4000 | Node.js + TypeScript | Gestión de consultas médicas y reportes |
@@ -43,12 +39,6 @@ graph TB
 - **MariaDB 10.11** - Base de datos relacional
 - **JWT** - Autenticación stateless
 - **bcrypt** - Hash seguro de contraseñas
-
-### Frontend
-- **React 19** + **TypeScript** - Interfaz de usuario moderna
-- **React Router DOM** - Navegación SPA
-- **Axios** - Cliente HTTP con interceptores
-- **Context API** - Manejo de estado global
 
 ### DevOps & Herramientas
 - **Docker & Docker Compose** - Contenedores y orquestación
@@ -99,17 +89,6 @@ hospitalSystem/
 │   ├── 🛡️ Middleware/
 │   ├── 🔧 Services/
 │   └── ⚙️ Configuration/
-│
-└── 🌐 frontend/                    # Interfaz React
-    ├── 📚 README.md
-    ├── 📦 package.json
-    ├── 📋 tsconfig.json
-    ├── 📂 public/
-    └── 📂 src/
-        ├── 🧩 components/          # Componentes React
-        ├── 🔄 contexts/            # Context API
-        ├── 🌐 services/            # Cliente HTTP
-        └── 🎨 styles/              # CSS personalizado
 ```
 
 ## 🚀 Instalación y Configuración
@@ -140,7 +119,6 @@ docker-compose ps
 
 | Servicio | URL | Descripción |
 |----------|-----|-------------|
-| **🌐 Frontend** | http://localhost:3001 | Interfaz principal del sistema |
 | **⚕️ Admin API** | http://localhost:3000 | API de administración |
 | **📋 Consultas API** | http://localhost:4000 | API de consultas médicas |
 | **🔀 Gateway .NET** | http://localhost:5158 | Gateway unificado |
@@ -234,12 +212,7 @@ cd consultas-api
 npm install
 npm run dev
 
-# Terminal 3 - Frontend React
-cd frontend
-npm install
-npm start
-
-# Terminal 4 - Gateway .NET (opcional)
+# Terminal 3 - Gateway .NET (opcional)
 cd gateway-api
 dotnet restore
 dotnet run
@@ -249,8 +222,7 @@ dotnet run
 
 Una vez que los servicios estén ejecutándose:
 
-1. **Abrir Frontend**: http://localhost:3001
-2. **Crear Primer Admin**: Click en "¿Primera vez? Crear usuario administrador"
+1. **Crear Primer Admin**: A través de la API
 3. **Usar credenciales por defecto**:
    - Username: `admin`
    - Password: `admin123`
@@ -271,17 +243,14 @@ Una vez que los servicios estén ejecutándose:
 
 ```mermaid
 sequenceDiagram
-    participant U as Usuario
-    participant F as Frontend
+    participant C as Cliente
     participant G as Gateway
     participant A as Admin API
     
-    U->>F: Credenciales
-    F->>G: POST /api/auth/login
+    C->>G: POST /api/auth/login
     G->>A: POST /usuarios/validate
     A->>G: Usuario válido
-    G->>F: JWT Token
-    F->>U: Acceso concedido
+    G->>C: JWT Token
 ```
 
 ### Middleware de Seguridad
@@ -852,55 +821,7 @@ curl -H "Authorization: Bearer <admin_token>" \
 
 ---
 
-### 🌐 Frontend (Puerto 3001)
 
-#### Páginas Principales
-
-##### Login Page (`/login`)
-- **URL**: http://localhost:3001/login
-- **Funcionalidad**: Autenticación de usuarios
-- **Credenciales por defecto**: 
-  - Username: `admin`
-  - Password: `admin123`
-
-##### Dashboard (`/dashboard`)
-- **URL**: http://localhost:3001/dashboard
-- **Funcionalidad**: Panel principal con navegación por roles
-- **Secciones disponibles**:
-  - **Inicio**: Overview del sistema
-  - **Centros**: Gestión de centros médicos (solo admin)
-  - **Usuarios**: Gestión de usuarios (solo admin)
-  - **Consultas**: Gestión de consultas médicas
-
-#### Ejemplos de Interacción
-
-##### Crear Centro desde Frontend
-1. Login como administrador
-2. Ir a pestaña "Centros"
-3. Llenar formulario:
-   ```
-   Nombre: Hospital del Niño
-   Dirección: Av. Eloy Alfaro N39-142
-   Ciudad: Quito
-   Teléfono: 02-2567-890
-   ```
-4. Click "Crear Centro"
-
-##### Crear Consulta desde Frontend
-1. Login como médico o administrador
-2. Ir a pestaña "Consultas"
-3. Llenar formulario:
-   ```
-   Paciente: Carlos Ramírez
-   Doctor ID: 1
-   Centro ID: 1 (automático para médicos)
-   Fecha: 2025-09-29 15:30
-   Notas: Consulta de rutina
-   Estado: programada
-   ```
-4. Click "Crear Consulta"
-
----
 
 ### 🔗 Gateway como Punto de Entrada Unificado (.NET)
 
@@ -1282,13 +1203,7 @@ curl -H "Authorization: Bearer <token>" \
   "http://localhost:4000/reportes/doctor/1?from=2025-09-01&to=2025-09-30"
 ```
 
-### 5. Usando el Frontend
 
-1. **Abrir**: http://localhost:3001
-2. **Login**: admin / admin123
-3. **Crear Centro**: Navegación → Centros → Llenar formulario
-4. **Crear Usuario**: Navegación → Usuarios → Seleccionar rol
-5. **Ver Consultas**: Navegación → Consultas
 
 ## 🎯 Casos de Uso Completos
 
@@ -1406,13 +1321,12 @@ docker exec -it admin-api bash
 ### Desarrollo Local
 ```bash
 # 📦 Instalar dependencias en todos los servicios
-for dir in admin-api consultas-api frontend; do
+for dir in admin-api consultas-api; do
   (cd $dir && npm install)
 done
 
 # 🚀 Iniciar servicio en desarrollo
 npm run dev                   # En cada directorio de API
-npm start                     # En frontend
 
 # 🏗️ Construir para producción
 npm run build
@@ -1690,10 +1604,6 @@ localStorage.clear()
 echo "🏥 Hospital System Health Check"
 echo "================================"
 
-# Frontend
-echo -n "🌐 Frontend (3001): "
-curl -s http://localhost:3001 > /dev/null && echo "✅ OK" || echo "❌ FAIL"
-
 # Admin API
 echo -n "⚕️ Admin API (3000): "
 curl -s http://localhost:3000/centros > /dev/null && echo "✅ OK" || echo "❌ FAIL"
@@ -1738,12 +1648,12 @@ docker-compose up -d --build
 #### 🔄 Reset Desarrollo Local
 ```bash
 # Limpiar dependencias
-for dir in admin-api consultas-api frontend; do
+for dir in admin-api consultas-api; do
   (cd $dir && rm -rf node_modules package-lock.json)
 done
 
 # Reinstalar
-for dir in admin-api consultas-api frontend; do
+for dir in admin-api consultas-api; do
   (cd $dir && npm install)
 done
 
@@ -1829,17 +1739,15 @@ of this software and associated documentation files...
 - [📚 Admin API Documentation](./admin-api/README.md)
 - [📚 Consultas API Documentation](./consultas-api/README.md)
 - [📚 Gateway .NET Documentation](./gateway-api/README.md)
-- [📚 Frontend Documentation](./frontend/README.md)
 
 ### 🛠️ Stack Técnico
 - **Backend**: Node.js 20, TypeScript, Express.js, TypeORM
-- **Frontend**: React 19, TypeScript, Axios, React Router DOM
 - **Database**: MariaDB 10.11
 - **Gateway**: .NET 8, ASP.NET Core
 - **DevOps**: Docker, Docker Compose
 
 ### 📊 Métricas del Proyecto
-- **Microservicios**: 4 (Frontend, Admin API, Consultas API, Gateway)
+- **Microservicios**: 3 (Admin API, Consultas API, Gateway)
 - **Entidades principales**: 6 (Centro, Usuario, Empleado, Médico, Especialidad, Consulta)
 - **Endpoints**: 25+ APIs RESTful
 - **Roles de usuario**: 3 (Admin, Médico, Empleado)
