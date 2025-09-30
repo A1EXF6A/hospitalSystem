@@ -74,13 +74,23 @@ const Dashboard: React.FC = () => {
     nombre: '', direccion: '', ciudad: '', telefono: ''
   });
   const [newUsuario, setNewUsuario] = useState({
-    username: '', password: '', role: 'empleado', centroId: ''
-  });
-  const [newEmpleado, setNewEmpleado] = useState({
-    nombre: '', cedula: '', cargo: '', centro: { id: '' }
-  });
-  const [newMedico, setNewMedico] = useState({
-    nombre: '', cedula: '', correo: '', telefono: '', especialidad: { id: '' }, centro: { id: '' }
+    // Campos básicos para todos los tipos
+    username: '',
+    password: '',
+    role: 'empleado',
+    centroId: '',
+    
+    // Campos específicos por tipo
+    nombre: '',
+    cedula: '',
+    
+    // Para empleados
+    cargo: '',
+    
+    // Para médicos
+    correo: '',
+    telefono: '',
+    especialidadId: ''
   });
   const [newEspecialidad, setNewEspecialidad] = useState({
     nombre: '', descripcion: ''
@@ -93,6 +103,22 @@ const Dashboard: React.FC = () => {
     loadInitialData();
   }, [activeTab]);
 
+  // Reset form function
+  const resetUsuarioForm = () => {
+    setNewUsuario({
+      username: '',
+      password: '',
+      role: 'empleado',
+      centroId: '',
+      nombre: '',
+      cedula: '',
+      cargo: '',
+      correo: '',
+      telefono: '',
+      especialidadId: ''
+    });
+  };
+
   const loadInitialData = async () => {
     setLoading(true);
     setError('');
@@ -104,12 +130,11 @@ const Dashboard: React.FC = () => {
       } else if (activeTab === 'usuarios' && isAdmin) {
         const response = await adminAPI.getUsuarios();
         setUsuarios(response.data);
-      } else if (activeTab === 'empleados' && isAdmin) {
-        const response = await adminAPI.getEmpleados();
-        setEmpleados(response.data);
-      } else if (activeTab === 'medicos' && isAdmin) {
-        const response = await adminAPI.getMedicos();
-        setMedicos(response.data);
+        // También cargar empleados y médicos para mostrarlos en la vista unificada
+        const empleadosResponse = await adminAPI.getEmpleados();
+        setEmpleados(empleadosResponse.data);
+        const medicosResponse = await adminAPI.getMedicos();
+        setMedicos(medicosResponse.data);
       } else if (activeTab === 'especialidades' && isAdmin) {
         const response = await adminAPI.getEspecialidades();
         setEspecialidades(response.data);
@@ -155,14 +180,41 @@ const Dashboard: React.FC = () => {
     setLoading(true);
     
     try {
+      // 1. Crear el usuario básico
       const userData = {
-        ...newUsuario,
+        username: newUsuario.username,
+        password: newUsuario.password,
+        role: newUsuario.role,
         centroId: newUsuario.centroId ? parseInt(newUsuario.centroId) : null
       };
-      await adminAPI.createUsuario(userData);
-      setNewUsuario({ username: '', password: '', role: 'empleado', centroId: '' });
+      
+      const userResponse = await adminAPI.createUsuario(userData);
+      const userId = userResponse.data.id;
+      
+      // 2. Crear registro específico según el tipo de usuario
+      if (newUsuario.role === 'medico') {
+        const medicoData = {
+          nombre: newUsuario.nombre,
+          cedula: newUsuario.cedula,
+          correo: newUsuario.correo,
+          telefono: newUsuario.telefono,
+          especialidad: { id: parseInt(newUsuario.especialidadId) },
+          centro: { id: parseInt(newUsuario.centroId) }
+        };
+        await adminAPI.createMedico(medicoData);
+      } else if (newUsuario.role === 'empleado') {
+        const empleadoData = {
+          nombre: newUsuario.nombre,
+          cedula: newUsuario.cedula,
+          cargo: newUsuario.cargo,
+          centro: { id: parseInt(newUsuario.centroId) }
+        };
+        await adminAPI.createEmpleado(empleadoData);
+      }
+      
+      resetUsuarioForm();
       loadInitialData();
-      alert('Usuario creado exitosamente');
+      alert(`${newUsuario.role === 'admin' ? 'Administrador' : newUsuario.role === 'medico' ? 'Médico' : 'Empleado'} creado exitosamente`);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error creando usuario');
     } finally {
@@ -272,47 +324,6 @@ const Dashboard: React.FC = () => {
       alert('Especialidad creada exitosamente');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error creando especialidad');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateEmpleado = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const empleadoData = {
-        ...newEmpleado,
-        centro: { id: parseInt(newEmpleado.centro.id) }
-      };
-      await adminAPI.createEmpleado(empleadoData);
-      setNewEmpleado({ nombre: '', cedula: '', cargo: '', centro: { id: '' } });
-      loadInitialData();
-      alert('Empleado creado exitosamente');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error creando empleado');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateMedico = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const medicoData = {
-        ...newMedico,
-        especialidad: { id: parseInt(newMedico.especialidad.id) },
-        centro: { id: parseInt(newMedico.centro.id) }
-      };
-      await adminAPI.createMedico(medicoData);
-      setNewMedico({ nombre: '', cedula: '', correo: '', telefono: '', especialidad: { id: '' }, centro: { id: '' } });
-      loadInitialData();
-      alert('Médico creado exitosamente');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error creando médico');
     } finally {
       setLoading(false);
     }
@@ -536,10 +547,12 @@ const Dashboard: React.FC = () => {
 
   const renderUsuarios = () => (
     <div className="usuarios-section">
-      <h3>👥 Gestión de Usuarios</h3>
+      <h3>👥 Gestión de Usuarios y Personal</h3>
       
       <form onSubmit={handleCreateUsuario} className="create-form">
         <h4>➕ Crear Nuevo Usuario</h4>
+        
+        {/* Campos básicos para todos los tipos */}
         <div className="form-row">
           <input
             type="text"
@@ -556,24 +569,110 @@ const Dashboard: React.FC = () => {
             required
           />
         </div>
+
         <div className="form-row">
           <select
             value={newUsuario.role}
-            onChange={(e) => setNewUsuario({...newUsuario, role: e.target.value})}
+            onChange={(e) => {
+              setNewUsuario({...newUsuario, role: e.target.value});
+            }}
+            required
           >
-            <option value="empleado">Empleado</option>
-            <option value="medico">Médico</option>
-            <option value="admin">Administrador</option>
+            <option value="empleado">👷 Empleado</option>
+            <option value="medico">👨‍⚕️ Médico</option>
+            <option value="admin">👑 Administrador</option>
           </select>
-          <input
-            type="number"
-            placeholder="Centro ID (opcional)"
-            value={newUsuario.centroId}
-            onChange={(e) => setNewUsuario({...newUsuario, centroId: e.target.value})}
-          />
+          
+          {/* Centro solo para médicos y empleados */}
+          {(newUsuario.role === 'medico' || newUsuario.role === 'empleado') && (
+            <select
+              value={newUsuario.centroId}
+              onChange={(e) => setNewUsuario({...newUsuario, centroId: e.target.value})}
+              required
+            >
+              <option value="">Seleccionar Centro</option>
+              {centros.map(centro => (
+                <option key={centro.id} value={centro.id}>
+                  {centro.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
+
+        {/* Campos específicos para empleados y médicos */}
+        {(newUsuario.role === 'medico' || newUsuario.role === 'empleado') && (
+          <>
+            <div className="form-row">
+              <input
+                type="text"
+                placeholder="Nombre completo"
+                value={newUsuario.nombre}
+                onChange={(e) => setNewUsuario({...newUsuario, nombre: e.target.value})}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Cédula"
+                value={newUsuario.cedula}
+                onChange={(e) => setNewUsuario({...newUsuario, cedula: e.target.value})}
+                required
+              />
+            </div>
+          </>
+        )}
+
+        {/* Campos específicos para empleados */}
+        {newUsuario.role === 'empleado' && (
+          <div className="form-row">
+            <input
+              type="text"
+              placeholder="Cargo"
+              value={newUsuario.cargo}
+              onChange={(e) => setNewUsuario({...newUsuario, cargo: e.target.value})}
+              required
+            />
+          </div>
+        )}
+
+        {/* Campos específicos para médicos */}
+        {newUsuario.role === 'medico' && (
+          <>
+            <div className="form-row">
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={newUsuario.correo}
+                onChange={(e) => setNewUsuario({...newUsuario, correo: e.target.value})}
+                required
+              />
+              <input
+                type="tel"
+                placeholder="Teléfono"
+                value={newUsuario.telefono}
+                onChange={(e) => setNewUsuario({...newUsuario, telefono: e.target.value})}
+                required
+              />
+            </div>
+            <div className="form-row">
+              <select
+                value={newUsuario.especialidadId}
+                onChange={(e) => setNewUsuario({...newUsuario, especialidadId: e.target.value})}
+                required
+              >
+                <option value="">Seleccionar Especialidad</option>
+                {especialidades.map(esp => (
+                  <option key={esp.id} value={esp.id}>
+                    {esp.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+
         <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Creando...' : 'Crear Usuario'}
+          {loading ? 'Creando...' : `Crear ${newUsuario.role === 'admin' ? 'Administrador' : newUsuario.role === 'medico' ? 'Médico' : 'Empleado'}`}
         </button>
       </form>
 
@@ -805,228 +904,7 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
-  const renderEmpleados = () => (
-    <div className="empleados-section">
-      <h3>👷 Gestión de Empleados</h3>
-      
-      <form onSubmit={handleCreateEmpleado} className="create-form">
-        <h4>➕ Crear Nuevo Empleado</h4>
-        <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre completo"
-            value={newEmpleado.nombre}
-            onChange={(e) => setNewEmpleado({...newEmpleado, nombre: e.target.value})}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Cédula"
-            value={newEmpleado.cedula}
-            onChange={(e) => setNewEmpleado({...newEmpleado, cedula: e.target.value})}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <input
-            type="text"
-            placeholder="Cargo"
-            value={newEmpleado.cargo}
-            onChange={(e) => setNewEmpleado({...newEmpleado, cargo: e.target.value})}
-            required
-          />
-          <select
-            value={newEmpleado.centro.id}
-            onChange={(e) => setNewEmpleado({...newEmpleado, centro: { id: e.target.value }})}
-            required
-          >
-            <option value="">Seleccionar Centro</option>
-            {centros.map(centro => (
-              <option key={centro.id} value={centro.id}>
-                {centro.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Creando...' : 'Crear Empleado'}
-        </button>
-      </form>
 
-      <div className="data-list">
-        <h4>📋 Empleados Existentes</h4>
-        {empleados.length === 0 ? (
-          <p>No hay empleados registrados</p>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Cédula</th>
-                  <th>Cargo</th>
-                  <th>Centro</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {empleados.map(empleado => (
-                  <tr key={empleado.id}>
-                    <td>{empleado.id}</td>
-                    <td>{empleado.nombre}</td>
-                    <td>{empleado.cedula}</td>
-                    <td>{empleado.cargo}</td>
-                    <td>{empleado.centro?.nombre}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => setViewingItem({...empleado, type: 'empleado'})}
-                          className="view-btn"
-                        >
-                          👁️
-                        </button>
-                        <button
-                          onClick={() => handleDelete('empleado', empleado.id)}
-                          className="delete-btn"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderMedicos = () => (
-    <div className="medicos-section">
-      <h3>👨‍⚕️ Gestión de Médicos</h3>
-      
-      <form onSubmit={handleCreateMedico} className="create-form">
-        <h4>➕ Crear Nuevo Médico</h4>
-        <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre completo"
-            value={newMedico.nombre}
-            onChange={(e) => setNewMedico({...newMedico, nombre: e.target.value})}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Cédula"
-            value={newMedico.cedula}
-            onChange={(e) => setNewMedico({...newMedico, cedula: e.target.value})}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <input
-            type="email"
-            placeholder="Correo electrónico"
-            value={newMedico.correo}
-            onChange={(e) => setNewMedico({...newMedico, correo: e.target.value})}
-            required
-          />
-          <input
-            type="tel"
-            placeholder="Teléfono"
-            value={newMedico.telefono}
-            onChange={(e) => setNewMedico({...newMedico, telefono: e.target.value})}
-            required
-          />
-        </div>
-        <div className="form-row">
-          <select
-            value={newMedico.especialidad.id}
-            onChange={(e) => setNewMedico({...newMedico, especialidad: { id: e.target.value }})}
-            required
-          >
-            <option value="">Seleccionar Especialidad</option>
-            {especialidades.map(esp => (
-              <option key={esp.id} value={esp.id}>
-                {esp.nombre}
-              </option>
-            ))}
-          </select>
-          <select
-            value={newMedico.centro.id}
-            onChange={(e) => setNewMedico({...newMedico, centro: { id: e.target.value }})}
-            required
-          >
-            <option value="">Seleccionar Centro</option>
-            {centros.map(centro => (
-              <option key={centro.id} value={centro.id}>
-                {centro.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? 'Creando...' : 'Crear Médico'}
-        </button>
-      </form>
-
-      <div className="data-list">
-        <h4>📋 Médicos Existentes</h4>
-        {medicos.length === 0 ? (
-          <p>No hay médicos registrados</p>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Cédula</th>
-                  <th>Correo</th>
-                  <th>Teléfono</th>
-                  <th>Especialidad</th>
-                  <th>Centro</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {medicos.map(medico => (
-                  <tr key={medico.id}>
-                    <td>{medico.id}</td>
-                    <td>{medico.nombre}</td>
-                    <td>{medico.cedula}</td>
-                    <td>{medico.correo}</td>
-                    <td>{medico.telefono}</td>
-                    <td>{medico.especialidad?.nombre}</td>
-                    <td>{medico.centro?.nombre}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          onClick={() => setViewingItem({...medico, type: 'medico'})}
-                          className="view-btn"
-                        >
-                          👁️
-                        </button>
-                        <button
-                          onClick={() => handleDelete('medico', medico.id)}
-                          className="delete-btn"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   const renderReportes = () => (
     <div className="reportes-section">
@@ -1402,25 +1280,13 @@ const Dashboard: React.FC = () => {
               className={activeTab === 'usuarios' ? 'active' : ''}
               onClick={() => setActiveTab('usuarios')}
             >
-              👥 Usuarios
+              👥 Usuarios y Personal
             </button>
             <button 
               className={activeTab === 'especialidades' ? 'active' : ''}
               onClick={() => setActiveTab('especialidades')}
             >
               ⚕️ Especialidades
-            </button>
-            <button 
-              className={activeTab === 'empleados' ? 'active' : ''}
-              onClick={() => setActiveTab('empleados')}
-            >
-              👷 Empleados
-            </button>
-            <button 
-              className={activeTab === 'medicos' ? 'active' : ''}
-              onClick={() => setActiveTab('medicos')}
-            >
-              👨‍⚕️ Médicos
             </button>
           </>
         )}
@@ -1447,8 +1313,6 @@ const Dashboard: React.FC = () => {
         {activeTab === 'centros' && isAdmin && renderCentros()}
         {activeTab === 'usuarios' && isAdmin && renderUsuarios()}
         {activeTab === 'especialidades' && isAdmin && renderEspecialidades()}
-        {activeTab === 'empleados' && isAdmin && renderEmpleados()}
-        {activeTab === 'medicos' && isAdmin && renderMedicos()}
         {activeTab === 'consultas' && renderConsultas()}
         {activeTab === 'reportes' && renderReportes()}
       </main>
