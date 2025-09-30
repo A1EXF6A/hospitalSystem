@@ -18,6 +18,30 @@ interface Usuario {
   centroId?: number;
 }
 
+interface Empleado {
+  id: number;
+  nombre: string;
+  cedula: string;
+  cargo: string;
+  centro: { id: number; nombre: string };
+}
+
+interface Medico {
+  id: number;
+  nombre: string;
+  cedula: string;
+  correo: string;
+  telefono: string;
+  especialidad: { id: number; nombre: string };
+  centro: { id: number; nombre: string };
+}
+
+interface Especialidad {
+  id: number;
+  nombre: string;
+  descripcion: string;
+}
+
 interface Consulta {
   id: number;
   paciente: string;
@@ -33,11 +57,17 @@ const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [viewingItem, setViewingItem] = useState<any>(null);
   
   // Data states
   const [centros, setCentros] = useState<Centro[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
+  const [reportes, setReportes] = useState<any[]>([]);
 
   // Form states
   const [newCentro, setNewCentro] = useState({
@@ -45,6 +75,15 @@ const Dashboard: React.FC = () => {
   });
   const [newUsuario, setNewUsuario] = useState({
     username: '', password: '', role: 'empleado', centroId: ''
+  });
+  const [newEmpleado, setNewEmpleado] = useState({
+    nombre: '', cedula: '', cargo: '', centro: { id: '' }
+  });
+  const [newMedico, setNewMedico] = useState({
+    nombre: '', cedula: '', correo: '', telefono: '', especialidad: { id: '' }, centro: { id: '' }
+  });
+  const [newEspecialidad, setNewEspecialidad] = useState({
+    nombre: '', descripcion: ''
   });
   const [newConsulta, setNewConsulta] = useState({
     paciente: '', doctorId: '', centroId: '', fecha: '', notas: '', estado: 'programada'
@@ -65,9 +104,28 @@ const Dashboard: React.FC = () => {
       } else if (activeTab === 'usuarios' && isAdmin) {
         const response = await adminAPI.getUsuarios();
         setUsuarios(response.data);
+      } else if (activeTab === 'empleados' && isAdmin) {
+        const response = await adminAPI.getEmpleados();
+        setEmpleados(response.data);
+      } else if (activeTab === 'medicos' && isAdmin) {
+        const response = await adminAPI.getMedicos();
+        setMedicos(response.data);
+      } else if (activeTab === 'especialidades' && isAdmin) {
+        const response = await adminAPI.getEspecialidades();
+        setEspecialidades(response.data);
       } else if (activeTab === 'consultas') {
         const response = await consultasAPI.getConsultas();
         setConsultas(response.data);
+      } else if (activeTab === 'reportes') {
+        // Load specialties and centers for dropdowns
+        if (isAdmin) {
+          const [centrosRes, medicosRes] = await Promise.all([
+            adminAPI.getCentros(),
+            adminAPI.getMedicos()
+          ]);
+          setCentros(centrosRes.data);
+          setMedicos(medicosRes.data);
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error cargando datos');
@@ -128,6 +186,145 @@ const Dashboard: React.FC = () => {
       alert('Consulta creada exitosamente');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error creando consulta');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DELETE functions
+  const handleDelete = async (type: string, id: number) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este elemento?')) return;
+    
+    setLoading(true);
+    try {
+      switch (type) {
+        case 'centro':
+          await adminAPI.deleteCentro(id);
+          break;
+        case 'usuario':
+          await adminAPI.deleteUsuario(id);
+          break;
+        case 'empleado':
+          await adminAPI.deleteEmpleado(id);
+          break;
+        case 'medico':
+          await adminAPI.deleteMedico(id);
+          break;
+        case 'especialidad':
+          await adminAPI.deleteEspecialidad(id);
+          break;
+        case 'consulta':
+          await consultasAPI.deleteConsulta(id);
+          break;
+      }
+      loadInitialData();
+      alert('Elemento eliminado exitosamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error eliminando elemento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // UPDATE functions
+  const handleUpdate = async (type: string, id: number, data: any) => {
+    setLoading(true);
+    try {
+      switch (type) {
+        case 'centro':
+          await adminAPI.updateCentro(id, data);
+          break;
+        case 'usuario':
+          await adminAPI.updateUsuario(id, data);
+          break;
+        case 'empleado':
+          await adminAPI.updateEmpleado(id, data);
+          break;
+        case 'medico':
+          await adminAPI.updateMedico(id, data);
+          break;
+        case 'especialidad':
+          await adminAPI.updateEspecialidad(id, data);
+          break;
+        case 'consulta':
+          await consultasAPI.updateConsulta(id, data);
+          break;
+      }
+      setEditingItem(null);
+      loadInitialData();
+      alert('Elemento actualizado exitosamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error actualizando elemento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // CREATE functions for new entities
+  const handleCreateEspecialidad = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      await adminAPI.createEspecialidad(newEspecialidad);
+      setNewEspecialidad({ nombre: '', descripcion: '' });
+      loadInitialData();
+      alert('Especialidad creada exitosamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error creando especialidad');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateEmpleado = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const empleadoData = {
+        ...newEmpleado,
+        centro: { id: parseInt(newEmpleado.centro.id) }
+      };
+      await adminAPI.createEmpleado(empleadoData);
+      setNewEmpleado({ nombre: '', cedula: '', cargo: '', centro: { id: '' } });
+      loadInitialData();
+      alert('Empleado creado exitosamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error creando empleado');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateMedico = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const medicoData = {
+        ...newMedico,
+        especialidad: { id: parseInt(newMedico.especialidad.id) },
+        centro: { id: parseInt(newMedico.centro.id) }
+      };
+      await adminAPI.createMedico(medicoData);
+      setNewMedico({ nombre: '', cedula: '', correo: '', telefono: '', especialidad: { id: '' }, centro: { id: '' } });
+      loadInitialData();
+      alert('Médico creado exitosamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error creando médico');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadReport = async (doctorId: number, from?: string, to?: string) => {
+    setLoading(true);
+    try {
+      const response = await consultasAPI.getReportByDoctor(doctorId, from, to);
+      setReportes(response.data.consultas || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error cargando reporte');
     } finally {
       setLoading(false);
     }
@@ -234,16 +431,99 @@ const Dashboard: React.FC = () => {
                   <th>Dirección</th>
                   <th>Ciudad</th>
                   <th>Teléfono</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {centros.map(centro => (
                   <tr key={centro.id}>
                     <td>{centro.id}</td>
-                    <td>{centro.nombre}</td>
-                    <td>{centro.direccion}</td>
-                    <td>{centro.ciudad}</td>
-                    <td>{centro.telefono}</td>
+                    <td>
+                      {editingItem?.id === centro.id && editingItem?.type === 'centro' ? (
+                        <input
+                          value={editingItem.nombre}
+                          onChange={(e) => setEditingItem({...editingItem, nombre: e.target.value})}
+                        />
+                      ) : (
+                        centro.nombre
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === centro.id && editingItem?.type === 'centro' ? (
+                        <input
+                          value={editingItem.direccion}
+                          onChange={(e) => setEditingItem({...editingItem, direccion: e.target.value})}
+                        />
+                      ) : (
+                        centro.direccion
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === centro.id && editingItem?.type === 'centro' ? (
+                        <input
+                          value={editingItem.ciudad}
+                          onChange={(e) => setEditingItem({...editingItem, ciudad: e.target.value})}
+                        />
+                      ) : (
+                        centro.ciudad
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === centro.id && editingItem?.type === 'centro' ? (
+                        <input
+                          value={editingItem.telefono}
+                          onChange={(e) => setEditingItem({...editingItem, telefono: e.target.value})}
+                        />
+                      ) : (
+                        centro.telefono
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {editingItem?.id === centro.id && editingItem?.type === 'centro' ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdate('centro', centro.id, {
+                                nombre: editingItem.nombre,
+                                direccion: editingItem.direccion,
+                                ciudad: editingItem.ciudad,
+                                telefono: editingItem.telefono
+                              })}
+                              className="save-btn"
+                            >
+                              💾
+                            </button>
+                            <button
+                              onClick={() => setEditingItem(null)}
+                              className="cancel-btn"
+                            >
+                              ❌
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingItem({...centro, type: 'centro'})}
+                              className="edit-btn"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => setViewingItem({...centro, type: 'centro'})}
+                              className="view-btn"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              onClick={() => handleDelete('centro', centro.id)}
+                              className="delete-btn"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -310,19 +590,496 @@ const Dashboard: React.FC = () => {
                   <th>Username</th>
                   <th>Rol</th>
                   <th>Centro ID</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {usuarios.map(usuario => (
                   <tr key={usuario.id}>
                     <td>{usuario.id}</td>
-                    <td>{usuario.username}</td>
                     <td>
-                      <span className={`role-badge ${usuario.role}`}>
-                        {usuario.role}
+                      {editingItem?.id === usuario.id && editingItem?.type === 'usuario' ? (
+                        <input
+                          value={editingItem.username}
+                          onChange={(e) => setEditingItem({...editingItem, username: e.target.value})}
+                        />
+                      ) : (
+                        usuario.username
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === usuario.id && editingItem?.type === 'usuario' ? (
+                        <select
+                          value={editingItem.role}
+                          onChange={(e) => setEditingItem({...editingItem, role: e.target.value})}
+                        >
+                          <option value="empleado">Empleado</option>
+                          <option value="medico">Médico</option>
+                          <option value="admin">Administrador</option>
+                        </select>
+                      ) : (
+                        <span className={`role-badge ${usuario.role}`}>
+                          {usuario.role}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === usuario.id && editingItem?.type === 'usuario' ? (
+                        <input
+                          type="number"
+                          value={editingItem.centroId || ''}
+                          onChange={(e) => setEditingItem({...editingItem, centroId: e.target.value ? parseInt(e.target.value) : null})}
+                        />
+                      ) : (
+                        usuario.centroId || 'N/A'
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {editingItem?.id === usuario.id && editingItem?.type === 'usuario' ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdate('usuario', usuario.id, {
+                                username: editingItem.username,
+                                role: editingItem.role,
+                                centroId: editingItem.centroId
+                              })}
+                              className="save-btn"
+                            >
+                              💾
+                            </button>
+                            <button
+                              onClick={() => setEditingItem(null)}
+                              className="cancel-btn"
+                            >
+                              ❌
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingItem({...usuario, type: 'usuario'})}
+                              className="edit-btn"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => setViewingItem({...usuario, type: 'usuario'})}
+                              className="view-btn"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              onClick={() => handleDelete('usuario', usuario.id)}
+                              className="delete-btn"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEspecialidades = () => (
+    <div className="especialidades-section">
+      <h3>⚕️ Gestión de Especialidades</h3>
+      
+      <form onSubmit={handleCreateEspecialidad} className="create-form">
+        <h4>➕ Crear Nueva Especialidad</h4>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="Nombre de la especialidad"
+            value={newEspecialidad.nombre}
+            onChange={(e) => setNewEspecialidad({...newEspecialidad, nombre: e.target.value})}
+            required
+          />
+        </div>
+        <div className="form-row">
+          <textarea
+            placeholder="Descripción"
+            value={newEspecialidad.descripcion}
+            onChange={(e) => setNewEspecialidad({...newEspecialidad, descripcion: e.target.value})}
+            rows={3}
+          />
+        </div>
+        <button type="submit" disabled={loading} className="submit-btn">
+          {loading ? 'Creando...' : 'Crear Especialidad'}
+        </button>
+      </form>
+
+      <div className="data-list">
+        <h4>📋 Especialidades Existentes</h4>
+        {especialidades.length === 0 ? (
+          <p>No hay especialidades registradas</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {especialidades.map(especialidad => (
+                  <tr key={especialidad.id}>
+                    <td>{especialidad.id}</td>
+                    <td>
+                      {editingItem?.id === especialidad.id && editingItem?.type === 'especialidad' ? (
+                        <input
+                          value={editingItem.nombre}
+                          onChange={(e) => setEditingItem({...editingItem, nombre: e.target.value})}
+                        />
+                      ) : (
+                        especialidad.nombre
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === especialidad.id && editingItem?.type === 'especialidad' ? (
+                        <textarea
+                          value={editingItem.descripcion}
+                          onChange={(e) => setEditingItem({...editingItem, descripcion: e.target.value})}
+                          rows={2}
+                        />
+                      ) : (
+                        especialidad.descripcion
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {editingItem?.id === especialidad.id && editingItem?.type === 'especialidad' ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdate('especialidad', especialidad.id, {
+                                nombre: editingItem.nombre,
+                                descripcion: editingItem.descripcion
+                              })}
+                              className="save-btn"
+                            >
+                              💾
+                            </button>
+                            <button
+                              onClick={() => setEditingItem(null)}
+                              className="cancel-btn"
+                            >
+                              ❌
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingItem({...especialidad, type: 'especialidad'})}
+                              className="edit-btn"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDelete('especialidad', especialidad.id)}
+                              className="delete-btn"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEmpleados = () => (
+    <div className="empleados-section">
+      <h3>👷 Gestión de Empleados</h3>
+      
+      <form onSubmit={handleCreateEmpleado} className="create-form">
+        <h4>➕ Crear Nuevo Empleado</h4>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="Nombre completo"
+            value={newEmpleado.nombre}
+            onChange={(e) => setNewEmpleado({...newEmpleado, nombre: e.target.value})}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Cédula"
+            value={newEmpleado.cedula}
+            onChange={(e) => setNewEmpleado({...newEmpleado, cedula: e.target.value})}
+            required
+          />
+        </div>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="Cargo"
+            value={newEmpleado.cargo}
+            onChange={(e) => setNewEmpleado({...newEmpleado, cargo: e.target.value})}
+            required
+          />
+          <select
+            value={newEmpleado.centro.id}
+            onChange={(e) => setNewEmpleado({...newEmpleado, centro: { id: e.target.value }})}
+            required
+          >
+            <option value="">Seleccionar Centro</option>
+            {centros.map(centro => (
+              <option key={centro.id} value={centro.id}>
+                {centro.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" disabled={loading} className="submit-btn">
+          {loading ? 'Creando...' : 'Crear Empleado'}
+        </button>
+      </form>
+
+      <div className="data-list">
+        <h4>📋 Empleados Existentes</h4>
+        {empleados.length === 0 ? (
+          <p>No hay empleados registrados</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Cédula</th>
+                  <th>Cargo</th>
+                  <th>Centro</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {empleados.map(empleado => (
+                  <tr key={empleado.id}>
+                    <td>{empleado.id}</td>
+                    <td>{empleado.nombre}</td>
+                    <td>{empleado.cedula}</td>
+                    <td>{empleado.cargo}</td>
+                    <td>{empleado.centro?.nombre}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          onClick={() => setViewingItem({...empleado, type: 'empleado'})}
+                          className="view-btn"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          onClick={() => handleDelete('empleado', empleado.id)}
+                          className="delete-btn"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderMedicos = () => (
+    <div className="medicos-section">
+      <h3>👨‍⚕️ Gestión de Médicos</h3>
+      
+      <form onSubmit={handleCreateMedico} className="create-form">
+        <h4>➕ Crear Nuevo Médico</h4>
+        <div className="form-row">
+          <input
+            type="text"
+            placeholder="Nombre completo"
+            value={newMedico.nombre}
+            onChange={(e) => setNewMedico({...newMedico, nombre: e.target.value})}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Cédula"
+            value={newMedico.cedula}
+            onChange={(e) => setNewMedico({...newMedico, cedula: e.target.value})}
+            required
+          />
+        </div>
+        <div className="form-row">
+          <input
+            type="email"
+            placeholder="Correo electrónico"
+            value={newMedico.correo}
+            onChange={(e) => setNewMedico({...newMedico, correo: e.target.value})}
+            required
+          />
+          <input
+            type="tel"
+            placeholder="Teléfono"
+            value={newMedico.telefono}
+            onChange={(e) => setNewMedico({...newMedico, telefono: e.target.value})}
+            required
+          />
+        </div>
+        <div className="form-row">
+          <select
+            value={newMedico.especialidad.id}
+            onChange={(e) => setNewMedico({...newMedico, especialidad: { id: e.target.value }})}
+            required
+          >
+            <option value="">Seleccionar Especialidad</option>
+            {especialidades.map(esp => (
+              <option key={esp.id} value={esp.id}>
+                {esp.nombre}
+              </option>
+            ))}
+          </select>
+          <select
+            value={newMedico.centro.id}
+            onChange={(e) => setNewMedico({...newMedico, centro: { id: e.target.value }})}
+            required
+          >
+            <option value="">Seleccionar Centro</option>
+            {centros.map(centro => (
+              <option key={centro.id} value={centro.id}>
+                {centro.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button type="submit" disabled={loading} className="submit-btn">
+          {loading ? 'Creando...' : 'Crear Médico'}
+        </button>
+      </form>
+
+      <div className="data-list">
+        <h4>📋 Médicos Existentes</h4>
+        {medicos.length === 0 ? (
+          <p>No hay médicos registrados</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Cédula</th>
+                  <th>Correo</th>
+                  <th>Teléfono</th>
+                  <th>Especialidad</th>
+                  <th>Centro</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {medicos.map(medico => (
+                  <tr key={medico.id}>
+                    <td>{medico.id}</td>
+                    <td>{medico.nombre}</td>
+                    <td>{medico.cedula}</td>
+                    <td>{medico.correo}</td>
+                    <td>{medico.telefono}</td>
+                    <td>{medico.especialidad?.nombre}</td>
+                    <td>{medico.centro?.nombre}</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          onClick={() => setViewingItem({...medico, type: 'medico'})}
+                          className="view-btn"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          onClick={() => handleDelete('medico', medico.id)}
+                          className="delete-btn"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderReportes = () => (
+    <div className="reportes-section">
+      <h3>📊 Reportes Médicos</h3>
+      
+      <div className="filters-form">
+        <h4>🔍 Filtros de Reporte</h4>
+        <div className="form-row">
+          <select
+            onChange={(e) => {
+              if (e.target.value) {
+                handleLoadReport(parseInt(e.target.value));
+              }
+            }}
+          >
+            <option value="">Seleccionar Médico</option>
+            {medicos.map(medico => (
+              <option key={medico.id} value={medico.id}>
+                Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="data-list">
+        <h4>📋 Consultas del Médico</h4>
+        {reportes.length === 0 ? (
+          <p>Selecciona un médico para ver su reporte</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Paciente</th>
+                  <th>Fecha</th>
+                  <th>Estado</th>
+                  <th>Notas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportes.map(consulta => (
+                  <tr key={consulta.id}>
+                    <td>{consulta.id}</td>
+                    <td>{consulta.paciente}</td>
+                    <td>{new Date(consulta.fecha).toLocaleString()}</td>
+                    <td>
+                      <span className={`status-badge ${consulta.estado}`}>
+                        {consulta.estado}
                       </span>
                     </td>
-                    <td>{usuario.centroId || 'N/A'}</td>
+                    <td>{consulta.notas || 'Sin notas'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -347,22 +1104,32 @@ const Dashboard: React.FC = () => {
             onChange={(e) => setNewConsulta({...newConsulta, paciente: e.target.value})}
             required
           />
-          <input
-            type="number"
-            placeholder="ID del doctor"
+          <select
             value={newConsulta.doctorId}
             onChange={(e) => setNewConsulta({...newConsulta, doctorId: e.target.value})}
             required
-          />
+          >
+            <option value="">Seleccionar Médico</option>
+            {medicos.map(medico => (
+              <option key={medico.id} value={medico.id}>
+                Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="form-row">
-          <input
-            type="number"
-            placeholder="ID del centro"
+          <select
             value={newConsulta.centroId}
             onChange={(e) => setNewConsulta({...newConsulta, centroId: e.target.value})}
             required
-          />
+          >
+            <option value="">Seleccionar Centro</option>
+            {centros.map(centro => (
+              <option key={centro.id} value={centro.id}>
+                {centro.nombre}
+              </option>
+            ))}
+          </select>
           <input
             type="datetime-local"
             value={newConsulta.fecha}
@@ -375,6 +1142,7 @@ const Dashboard: React.FC = () => {
             placeholder="Notas (opcional)"
             value={newConsulta.notas}
             onChange={(e) => setNewConsulta({...newConsulta, notas: e.target.value})}
+            rows={3}
           />
           <select
             value={newConsulta.estado}
@@ -405,20 +1173,115 @@ const Dashboard: React.FC = () => {
                   <th>Centro ID</th>
                   <th>Fecha</th>
                   <th>Estado</th>
+                  <th>Notas</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {consultas.map(consulta => (
                   <tr key={consulta.id}>
                     <td>{consulta.id}</td>
-                    <td>{consulta.paciente}</td>
+                    <td>
+                      {editingItem?.id === consulta.id && editingItem?.type === 'consulta' ? (
+                        <input
+                          value={editingItem.paciente}
+                          onChange={(e) => setEditingItem({...editingItem, paciente: e.target.value})}
+                        />
+                      ) : (
+                        consulta.paciente
+                      )}
+                    </td>
                     <td>{consulta.doctorId}</td>
                     <td>{consulta.centroId}</td>
-                    <td>{new Date(consulta.fecha).toLocaleString()}</td>
                     <td>
-                      <span className={`status-badge ${consulta.estado}`}>
-                        {consulta.estado}
-                      </span>
+                      {editingItem?.id === consulta.id && editingItem?.type === 'consulta' ? (
+                        <input
+                          type="datetime-local"
+                          value={editingItem.fecha ? editingItem.fecha.slice(0, 16) : ''}
+                          onChange={(e) => setEditingItem({...editingItem, fecha: e.target.value})}
+                        />
+                      ) : (
+                        new Date(consulta.fecha).toLocaleString()
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === consulta.id && editingItem?.type === 'consulta' ? (
+                        <select
+                          value={editingItem.estado}
+                          onChange={(e) => setEditingItem({...editingItem, estado: e.target.value})}
+                        >
+                          <option value="programada">Programada</option>
+                          <option value="completada">Completada</option>
+                          <option value="cancelada">Cancelada</option>
+                        </select>
+                      ) : (
+                        <span className={`status-badge ${consulta.estado}`}>
+                          {consulta.estado}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === consulta.id && editingItem?.type === 'consulta' ? (
+                        <textarea
+                          value={editingItem.notas || ''}
+                          onChange={(e) => setEditingItem({...editingItem, notas: e.target.value})}
+                          rows={2}
+                        />
+                      ) : (
+                        consulta.notas ? (
+                          <span title={consulta.notas}>
+                            {consulta.notas.length > 30 ? consulta.notas.substring(0, 30) + '...' : consulta.notas}
+                          </span>
+                        ) : (
+                          'Sin notas'
+                        )
+                      )}
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        {editingItem?.id === consulta.id && editingItem?.type === 'consulta' ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdate('consulta', consulta.id, {
+                                paciente: editingItem.paciente,
+                                fecha: editingItem.fecha,
+                                estado: editingItem.estado,
+                                notas: editingItem.notas
+                              })}
+                              className="save-btn"
+                            >
+                              💾
+                            </button>
+                            <button
+                              onClick={() => setEditingItem(null)}
+                              className="cancel-btn"
+                            >
+                              ❌
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setEditingItem({...consulta, type: 'consulta'})}
+                              className="edit-btn"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => setViewingItem({...consulta, type: 'consulta'})}
+                              className="view-btn"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              onClick={() => handleDelete('consulta', consulta.id)}
+                              className="delete-btn"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -429,6 +1292,85 @@ const Dashboard: React.FC = () => {
       </div>
     </div>
   );
+
+  const renderModal = () => {
+    if (!viewingItem) return null;
+
+    return (
+      <div className="modal-overlay" onClick={() => setViewingItem(null)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>
+              {viewingItem.type === 'centro' && '🏥 Detalles del Centro'}
+              {viewingItem.type === 'usuario' && '👤 Detalles del Usuario'}
+              {viewingItem.type === 'empleado' && '👷 Detalles del Empleado'}
+              {viewingItem.type === 'medico' && '👨‍⚕️ Detalles del Médico'}
+              {viewingItem.type === 'consulta' && '📋 Detalles de la Consulta'}
+            </h3>
+            <button onClick={() => setViewingItem(null)} className="close-btn">❌</button>
+          </div>
+          
+          <div className="modal-body">
+            {viewingItem.type === 'centro' && (
+              <div className="details-grid">
+                <div><strong>ID:</strong> {viewingItem.id}</div>
+                <div><strong>Nombre:</strong> {viewingItem.nombre}</div>
+                <div><strong>Dirección:</strong> {viewingItem.direccion}</div>
+                <div><strong>Ciudad:</strong> {viewingItem.ciudad}</div>
+                <div><strong>Teléfono:</strong> {viewingItem.telefono}</div>
+              </div>
+            )}
+            
+            {viewingItem.type === 'usuario' && (
+              <div className="details-grid">
+                <div><strong>ID:</strong> {viewingItem.id}</div>
+                <div><strong>Username:</strong> {viewingItem.username}</div>
+                <div><strong>Rol:</strong> <span className={`role-badge ${viewingItem.role}`}>{viewingItem.role}</span></div>
+                <div><strong>Centro ID:</strong> {viewingItem.centroId || 'No asignado'}</div>
+              </div>
+            )}
+            
+            {viewingItem.type === 'empleado' && (
+              <div className="details-grid">
+                <div><strong>ID:</strong> {viewingItem.id}</div>
+                <div><strong>Nombre:</strong> {viewingItem.nombre}</div>
+                <div><strong>Cédula:</strong> {viewingItem.cedula}</div>
+                <div><strong>Cargo:</strong> {viewingItem.cargo}</div>
+                <div><strong>Centro:</strong> {viewingItem.centro?.nombre}</div>
+              </div>
+            )}
+            
+            {viewingItem.type === 'medico' && (
+              <div className="details-grid">
+                <div><strong>ID:</strong> {viewingItem.id}</div>
+                <div><strong>Nombre:</strong> {viewingItem.nombre}</div>
+                <div><strong>Cédula:</strong> {viewingItem.cedula}</div>
+                <div><strong>Correo:</strong> {viewingItem.correo}</div>
+                <div><strong>Teléfono:</strong> {viewingItem.telefono}</div>
+                <div><strong>Especialidad:</strong> {viewingItem.especialidad?.nombre}</div>
+                <div><strong>Centro:</strong> {viewingItem.centro?.nombre}</div>
+              </div>
+            )}
+            
+            {viewingItem.type === 'consulta' && (
+              <div className="details-grid">
+                <div><strong>ID:</strong> {viewingItem.id}</div>
+                <div><strong>Paciente:</strong> {viewingItem.paciente}</div>
+                <div><strong>Doctor ID:</strong> {viewingItem.doctorId}</div>
+                <div><strong>Centro ID:</strong> {viewingItem.centroId}</div>
+                <div><strong>Fecha:</strong> {new Date(viewingItem.fecha).toLocaleString()}</div>
+                <div><strong>Estado:</strong> <span className={`status-badge ${viewingItem.estado}`}>{viewingItem.estado}</span></div>
+                <div className="notes-section">
+                  <strong>Notas:</strong>
+                  <div className="notes-content">{viewingItem.notas || 'Sin notas adicionales'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="dashboard">
@@ -462,6 +1404,24 @@ const Dashboard: React.FC = () => {
             >
               👥 Usuarios
             </button>
+            <button 
+              className={activeTab === 'especialidades' ? 'active' : ''}
+              onClick={() => setActiveTab('especialidades')}
+            >
+              ⚕️ Especialidades
+            </button>
+            <button 
+              className={activeTab === 'empleados' ? 'active' : ''}
+              onClick={() => setActiveTab('empleados')}
+            >
+              👷 Empleados
+            </button>
+            <button 
+              className={activeTab === 'medicos' ? 'active' : ''}
+              onClick={() => setActiveTab('medicos')}
+            >
+              👨‍⚕️ Médicos
+            </button>
           </>
         )}
         
@@ -471,6 +1431,13 @@ const Dashboard: React.FC = () => {
         >
           📋 Consultas
         </button>
+        
+        <button 
+          className={activeTab === 'reportes' ? 'active' : ''}
+          onClick={() => setActiveTab('reportes')}
+        >
+          📊 Reportes
+        </button>
       </nav>
 
       <main className="dashboard-content">
@@ -479,8 +1446,14 @@ const Dashboard: React.FC = () => {
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'centros' && isAdmin && renderCentros()}
         {activeTab === 'usuarios' && isAdmin && renderUsuarios()}
+        {activeTab === 'especialidades' && isAdmin && renderEspecialidades()}
+        {activeTab === 'empleados' && isAdmin && renderEmpleados()}
+        {activeTab === 'medicos' && isAdmin && renderMedicos()}
         {activeTab === 'consultas' && renderConsultas()}
+        {activeTab === 'reportes' && renderReportes()}
       </main>
+      
+      {renderModal()}
     </div>
   );
 };

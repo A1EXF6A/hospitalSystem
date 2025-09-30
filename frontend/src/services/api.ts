@@ -46,23 +46,38 @@ export const authAPI = {
 export const adminAPI = {
   // Centros
   getCentros: () => api.get('/centros'),
+  getCentro: (id: number) => api.get(`/centros/${id}`),
   createCentro: (data: any) => api.post('/centros', data),
+  updateCentro: (id: number, data: any) => api.put(`/centros/${id}`, data),
+  deleteCentro: (id: number) => api.delete(`/centros/${id}`),
   
   // Usuarios
   getUsuarios: () => api.get('/usuarios'),
+  getUsuario: (id: number) => api.get(`/usuarios/${id}`),
   createUsuario: (data: any) => api.post('/usuarios', data),
+  updateUsuario: (id: number, data: any) => api.put(`/usuarios/${id}`, data),
+  deleteUsuario: (id: number) => api.delete(`/usuarios/${id}`),
   
   // Empleados
   getEmpleados: () => api.get('/empleados'),
+  getEmpleado: (id: number) => api.get(`/empleados/${id}`),
   createEmpleado: (data: any) => api.post('/empleados', data),
+  updateEmpleado: (id: number, data: any) => api.put(`/empleados/${id}`, data),
+  deleteEmpleado: (id: number) => api.delete(`/empleados/${id}`),
   
   // Médicos
   getMedicos: () => api.get('/medicos'),
+  getMedico: (id: number) => api.get(`/medicos/${id}`),
   createMedico: (data: any) => api.post('/medicos', data),
+  updateMedico: (id: number, data: any) => api.put(`/medicos/${id}`, data),
+  deleteMedico: (id: number) => api.delete(`/medicos/${id}`),
   
   // Especialidades
   getEspecialidades: () => api.get('/especialidades'),
+  getEspecialidad: (id: number) => api.get(`/especialidades/${id}`),
   createEspecialidad: (data: any) => api.post('/especialidades', data),
+  updateEspecialidad: (id: number, data: any) => api.put(`/especialidades/${id}`, data),
+  deleteEspecialidad: (id: number) => api.delete(`/especialidades/${id}`),
 };
 
 export const consultasAPI = {
@@ -71,15 +86,38 @@ export const consultasAPI = {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     }),
     
+  getConsulta: (id: number) =>
+    axios.get(`${CONSULTAS_URL}/consultas/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    }),
+    
   createConsulta: (data: any) =>
     axios.post(`${CONSULTAS_URL}/consultas`, data, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     }),
     
-  getReportByDoctor: (doctorId: number) =>
-    axios.get(`${CONSULTAS_URL}/reportes/doctor/${doctorId}`, {
+  updateConsulta: (id: number, data: any) =>
+    axios.put(`${CONSULTAS_URL}/consultas/${id}`, data, {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     }),
+    
+  deleteConsulta: (id: number) =>
+    axios.delete(`${CONSULTAS_URL}/consultas/${id}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    }),
+    
+  getReportByDoctor: (doctorId: number, from?: string, to?: string) => {
+    let url = `${CONSULTAS_URL}/reportes/doctor/${doctorId}`;
+    if (from || to) {
+      const params = new URLSearchParams();
+      if (from) params.append('from', from);
+      if (to) params.append('to', to);
+      url += `?${params.toString()}`;
+    }
+    return axios.get(url, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+  },
 };
 
 export const setupAPI = {
