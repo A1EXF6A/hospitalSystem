@@ -645,6 +645,7 @@ const Dashboard: React.FC = () => {
                 value={newUsuario.correo}
                 onChange={(e) => setNewUsuario({...newUsuario, correo: e.target.value})}
                 required
+                
               />
               <input
                 type="tel"
