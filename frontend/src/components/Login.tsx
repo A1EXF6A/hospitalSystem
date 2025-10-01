@@ -57,7 +57,7 @@ const Login: React.FC = () => {
     return (
       <div className="login-container">
         <div className="login-card">
-          <h2>🏥 Setup Inicial - Hospital System</h2>
+          <h2>Setup Inicial - Hospital System</h2>
           <p>Crear el primer usuario administrador</p>
           
           <form onSubmit={handleSetup}>
@@ -112,7 +112,7 @@ const Login: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h2>🏥 Hospital System</h2>
+        <h2>Hospital System</h2>
         <p>Sistema de Gestión Hospitalaria</p>
         
         <form onSubmit={handleLogin}>
