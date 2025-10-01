@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 const GATEWAY_URL = process.env.REACT_APP_GATEWAY_URL || 'http://localhost:5158';
+const CONSULTAS_URL = process.env.REACT_APP_CONSULTAS_URL || 'http://localhost:4000';
 
 // Create axios instance
 const api = axios.create({
