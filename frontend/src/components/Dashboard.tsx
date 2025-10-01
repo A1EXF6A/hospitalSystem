@@ -642,7 +642,7 @@ const Dashboard: React.FC = () => {
               <input
                 type="email"
                 placeholder="Correo electrónico"
-                value={newUsuario.correo}
+                //value={newUsuario.correo}
                 onChange={(e) => setNewUsuario({...newUsuario, correo: e.target.value})}
                 required
               />
