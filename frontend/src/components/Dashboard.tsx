@@ -641,7 +641,7 @@ const Dashboard: React.FC = () => {
             <div className="form-row">
               <input
                 type="email"
-                placeholder="Correo "
+                placeholder="Correo electrónico"
                 value={newUsuario.correo}
                 onChange={(e) => setNewUsuario({...newUsuario, correo: e.target.value})}
                 required
