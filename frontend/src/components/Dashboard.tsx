@@ -744,13 +744,17 @@ const Dashboard: React.FC = () => {
   ) => {
     setLoading(true);
     try {
+      console.log('Loading report for doctorId:', doctorId);
       const response = await consultasAPI.getReportByDoctor(doctorId, from, to);
+      console.log('API Response:', response.data);
+      console.log('Consultas found:', response.data.consultas?.length || 0);
       setReportes(response.data.consultas || []);
 
       // Set the selected doctor for the PDF generation
       const doctor = medicos.find((m) => m.id === doctorId);
       setSelectedDoctorForReport(doctor || null);
     } catch (err: any) {
+      console.error('Error loading report:', err);
       setError(err.response?.data?.message || "Error cargando reporte");
     } finally {
       setLoading(false);
@@ -1756,12 +1760,15 @@ const Dashboard: React.FC = () => {
         <div className="form-row">
           <select
             onChange={(e) => {
-              if (e.target.value) {
-                handleLoadReport(parseInt(e.target.value));
+              if (e.target.value && e.target.value !== "") {
+                const doctorId = parseInt(e.target.value);
+                if (!isNaN(doctorId)) {
+                  handleLoadReport(doctorId);
+                }
               }
             }}
           >
-            <option value="None">Seleccionar Doctor</option>
+            <option value="">Seleccionar Doctor</option>
             {medicos.map((medico) => (
               <option key={medico.id} value={medico.id}>
                 Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
