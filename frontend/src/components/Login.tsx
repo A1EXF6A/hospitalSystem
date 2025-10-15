@@ -1,34 +1,36 @@
-import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { setupAPI } from '../services/api';
-import './Login.css';
+import React, { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { setupAPI } from "../services/api";
+import "./Login.css";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showSetup, setShowSetup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [setupData, setSetupData] = useState({
-    username: 'admin',
-    password: 'admin123',
-    centroId: 1
+    username: "admin",
+    password: "admin123",
+    centroId: 1,
   });
-  
+
   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const success = await login(username, password);
       if (!success) {
-        setError('Credenciales inválidas');
+        setError("Credenciales inválidas");
       }
     } catch (err) {
-      setError('Error de conexión');
+      setError("Error de conexión");
     } finally {
       setLoading(false);
     }
@@ -37,17 +39,21 @@ const Login: React.FC = () => {
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await setupAPI.createInitialAdmin(setupData);
       setShowSetup(false);
       setUsername(setupData.username);
       setPassword(setupData.password);
-      setError('');
-      alert('Usuario administrador creado exitosamente. Puedes hacer login ahora.');
+      setError("");
+      alert(
+        "Usuario administrador creado exitosamente. Puedes hacer login ahora.",
+      );
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error creando usuario administrador');
+      setError(
+        err.response?.data?.message || "Error creando usuario administrador",
+      );
     } finally {
       setLoading(false);
     }
@@ -59,45 +65,72 @@ const Login: React.FC = () => {
         <div className="login-card">
           <h2>Setup Inicial - Hospital System</h2>
           <p>Crear el primer usuario administrador</p>
-          
+
           <form onSubmit={handleSetup}>
             <div className="form-group">
-              <label>Username:</label>
-              <input
-                type="text"
-                value={setupData.username}
-                onChange={(e) => setSetupData({...setupData, username: e.target.value})}
-                required
-              />
+              <label>Contraseña:</label>
+              <div className="password-input-container">
+                <input
+                  type={showSetupPassword ? "text" : "password"}
+                  value={setupData.password}
+                  onChange={(e) =>
+                    setSetupData({ ...setupData, password: e.target.value })
+                  }
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowSetupPassword(!showSetupPassword)}
+                >
+                  {showSetupPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
-            
+
             <div className="form-group">
-              <label>Password:</label>
-              <input
-                type="password"
-                value={setupData.password}
-                onChange={(e) => setSetupData({...setupData, password: e.target.value})}
-                required
-              />
+              <label>Contraseña:</label>
+              <div className="password-input-container">
+                <input
+                  type={showSetupPassword ? "text" : "password"}
+                  value={setupData.password}
+                  onChange={(e) =>
+                    setSetupData({ ...setupData, password: e.target.value })
+                  }
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowSetupPassword(!showSetupPassword)}
+                >
+                  {showSetupPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
-            
+
             <div className="form-group">
               <label>Centro ID (opcional):</label>
               <input
                 type="number"
                 value={setupData.centroId}
-                onChange={(e) => setSetupData({...setupData, centroId: parseInt(e.target.value) || 1})}
+                onChange={(e) =>
+                  setSetupData({
+                    ...setupData,
+                    centroId: parseInt(e.target.value) || 1,
+                  })
+                }
               />
             </div>
-            
+
             {error && <div className="error-message">{error}</div>}
-            
+
             <button type="submit" disabled={loading} className="login-button">
-              {loading ? 'Creando...' : 'Crear Admin'}
+              {loading ? "Creando..." : "Crear Admin"}
             </button>
-            
-            <button 
-              type="button" 
+
+            <button
+              type="button"
               onClick={() => setShowSetup(false)}
               className="link-button"
             >
@@ -114,49 +147,57 @@ const Login: React.FC = () => {
       <div className="login-card">
         <h2>Hospital System</h2>
         <p>Sistema de Gestión Hospitalaria</p>
-        
+
         <form onSubmit={handleLogin}>
           <div className="form-group">
-            <label>Username:</label>
+            <label>Usuario:</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Ingresa tu username"
+              placeholder="Ingresa tu usuario"
               required
             />
           </div>
-          
+
           <div className="form-group">
-            <label>Password:</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Ingresa tu password"
-              required
-            />
+            <label>Contraseña:</label>
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
+            </div>
           </div>
-          
+
           {error && <div className="error-message">{error}</div>}
-          
+
           <button type="submit" disabled={loading} className="login-button">
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
         </form>
-        
+
         <div className="login-footer">
-          <button 
-            onClick={() => setShowSetup(true)}
-            className="link-button"
-          >
+          <button onClick={() => setShowSetup(true)} className="link-button">
             ¿Primera vez? Crear usuario administrador
           </button>
-          
+
           <div className="demo-credentials">
             <small>
-              <strong>Credenciales de prueba:</strong><br />
-              Username: admin<br />
+              <strong>Credenciales de prueba:</strong>
+              <br />
+              Username: admin
+              <br />
               Password: admin123
             </small>
           </div>
@@ -167,3 +208,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+

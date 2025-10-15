@@ -60,6 +60,20 @@ const Dashboard: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [viewingItem, setViewingItem] = useState<any>(null);
 
+  // Validation states
+  const [centroErrors, setCentroErrors] = useState<{ [key: string]: string }>(
+    {},
+  );
+  const [usuarioErrors, setUsuarioErrors] = useState<{ [key: string]: string }>(
+    {},
+  );
+  const [especialidadErrors, setEspecialidadErrors] = useState<{
+    [key: string]: string;
+  }>({});
+  const [consultaErrors, setConsultaErrors] = useState<{
+    [key: string]: string;
+  }>({});
+
   // Data states
   const [centros, setCentros] = useState<Centro[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -127,33 +141,184 @@ const Dashboard: React.FC = () => {
   // Load current doctor info when user is a doctor
   useEffect(() => {
     if (isMedico && user?.id) {
-      loadCurrentDoctor();
+      // For doctors, we'll create a mock doctor object based on user info
+      // In a real system, this should come from a doctor-specific endpoint
+      setCurrentDoctor({
+        id: parseInt(user.id),
+        nombre: user.username, // This should be the doctor's real name
+        cedula: "N/A",
+        correo: "N/A",
+        telefono: "N/A",
+        especialidad: { id: 1, nombre: "General" }, // Default speciality
+        centro: {
+          id: user.centroId || 1,
+          nombre: `Centro ${user.centroId || 1}`,
+        },
+      });
     }
-  }, [isMedico, user?.id]);
+  }, [isMedico, user?.id, user?.centroId, user?.username]);
 
-  const loadCurrentDoctor = async () => {
-    try {
-      const medicosResponse = await adminAPI.getMedicos();
-      const doctors = medicosResponse.data;
-      // Find the doctor record that matches the logged-in user's center
-      // For doctors, we'll use their centroId to find their doctor record
-      const doctor = doctors.find((doc: Medico) => 
-        doc.centro.id === user?.centroId
-      );
-      if (doctor) {
-        setCurrentDoctor(doctor);
-      } else {
-        // If no exact match by center, try to find by any available criteria
-        // This is a fallback - you might need to adjust based on your data structure
-        console.warn('No doctor found matching current user. Using first doctor from user center as fallback.');
-        const fallbackDoctor = doctors.find((doc: Medico) => doc.centro.id === user?.centroId);
-        if (fallbackDoctor) {
-          setCurrentDoctor(fallbackDoctor);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading current doctor:', error);
+  // Validation functions
+  const validateCentro = (
+    centro: typeof newCentro,
+  ): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+
+    if (!centro.nombre.trim()) {
+      errors.nombre = "El nombre es requerido";
+    } else if (centro.nombre.length < 3) {
+      errors.nombre = "El nombre debe tener al menos 3 caracteres";
+    } else if (centro.nombre.length > 100) {
+      errors.nombre = "El nombre no puede exceder 100 caracteres";
     }
+
+    if (!centro.direccion.trim()) {
+      errors.direccion = "La dirección es requerida";
+    } else if (centro.direccion.length < 10) {
+      errors.direccion = "La dirección debe tener al menos 10 caracteres";
+    }
+
+    if (!centro.ciudad.trim()) {
+      errors.ciudad = "La ciudad es requerida";
+    } else if (centro.ciudad.length < 2) {
+      errors.ciudad = "La ciudad debe tener al menos 2 caracteres";
+    }
+
+    if (!centro.telefono.trim()) {
+      errors.telefono = "El teléfono es requerido";
+    } else if (!/^\+?[\d\s\-\(\)]{7,15}$/.test(centro.telefono)) {
+      errors.telefono = "Formato de teléfono inválido (7-15 dígitos)";
+    }
+
+    return errors;
+  };
+
+  const validateUsuario = (
+    usuario: typeof newUsuario,
+  ): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+
+    if (!usuario.username.trim()) {
+      errors.username = "El username es requerido";
+    } else if (usuario.username.length < 3) {
+      errors.username = "El username debe tener al menos 3 caracteres";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(usuario.username)) {
+      errors.username =
+        "El username solo puede contener letras, números y guiones bajos";
+    }
+
+    if (!usuario.password.trim()) {
+      errors.password = "La contraseña es requerida";
+    } else if (usuario.password.length < 6) {
+      errors.password = "La contraseña debe tener al menos 6 caracteres";
+    }
+
+    if (
+      (usuario.role === "medico" || usuario.role === "empleado") &&
+      !usuario.centroId
+    ) {
+      errors.centroId = "El centro es requerido para médicos y empleados";
+    }
+
+    if (usuario.role === "medico" || usuario.role === "empleado") {
+      if (!usuario.nombre.trim()) {
+        errors.nombre = "El nombre es requerido";
+      } else if (usuario.nombre.length < 2) {
+        errors.nombre = "El nombre debe tener al menos 2 caracteres";
+      }
+
+      if (!usuario.cedula.trim()) {
+        errors.cedula = "La cédula es requerida";
+      } else if (!/^\d{6,15}$/.test(usuario.cedula)) {
+        errors.cedula = "La cédula debe contener entre 6 y 15 dígitos";
+      }
+    }
+
+    if (usuario.role === "empleado") {
+      if (!usuario.cargo.trim()) {
+        errors.cargo = "El cargo es requerido";
+      }
+    }
+
+    if (usuario.role === "medico") {
+      if (!usuario.correo.trim()) {
+        errors.correo = "El correo es requerido";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(usuario.correo)) {
+        errors.correo = "Formato de correo inválido";
+      }
+
+      if (!usuario.telefono.trim()) {
+        errors.telefono = "El teléfono es requerido";
+      } else if (!/^\+?[\d\s\-\(\)]{7,15}$/.test(usuario.telefono)) {
+        errors.telefono = "Formato de teléfono inválido";
+      }
+
+      if (!usuario.especialidadId) {
+        errors.especialidadId = "La especialidad es requerida";
+      }
+    }
+
+    return errors;
+  };
+
+  const validateEspecialidad = (
+    especialidad: typeof newEspecialidad,
+  ): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+
+    if (!especialidad.nombre.trim()) {
+      errors.nombre = "El nombre es requerido";
+    } else if (especialidad.nombre.length < 3) {
+      errors.nombre = "El nombre debe tener al menos 3 caracteres";
+    } else if (especialidad.nombre.length > 100) {
+      errors.nombre = "El nombre no puede exceder 100 caracteres";
+    }
+
+    if (especialidad.descripcion && especialidad.descripcion.length > 500) {
+      errors.descripcion = "La descripción no puede exceder 500 caracteres";
+    }
+
+    return errors;
+  };
+
+  const validateConsulta = (
+    consulta: typeof newConsulta,
+  ): { [key: string]: string } => {
+    const errors: { [key: string]: string } = {};
+
+    if (!consulta.paciente.trim()) {
+      errors.paciente = "El nombre del paciente es requerido";
+    } else if (consulta.paciente.length < 2) {
+      errors.paciente = "El nombre debe tener al menos 2 caracteres";
+    } else if (consulta.paciente.length > 100) {
+      errors.paciente = "El nombre no puede exceder 100 caracteres";
+    }
+
+    if (!isMedico && !consulta.doctorId) {
+      errors.doctorId = "El médico es requerido";
+    }
+
+    if (!isMedico && !consulta.centroId) {
+      errors.centroId = "El centro es requerido";
+    }
+
+    if (!consulta.fecha) {
+      errors.fecha = "La fecha es requerida";
+    } else {
+      const selectedDate = new Date(consulta.fecha);
+      const now = new Date();
+      const minDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+
+      if (selectedDate < minDate) {
+        errors.fecha = "La fecha no puede ser más de 24 horas en el pasado";
+      }
+    }
+
+    if (consulta.notas && consulta.notas.length > 1000) {
+      errors.notas = "Las notas no pueden exceder 1000 caracteres";
+    }
+
+    return errors;
   };
 
   // Reset form function
@@ -170,6 +335,7 @@ const Dashboard: React.FC = () => {
       telefono: "",
       especialidadId: "",
     });
+    setUsuarioErrors({});
   };
 
   const loadInitialData = async () => {
@@ -266,11 +432,22 @@ const Dashboard: React.FC = () => {
 
   const handleCreateCentro = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    const errors = validateCentro(newCentro);
+    setCentroErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Por favor corrige los errores en el formulario");
+      return;
+    }
+
     setLoading(true);
+    setError("");
 
     try {
       await adminAPI.createCentro(newCentro);
       setNewCentro({ nombre: "", direccion: "", ciudad: "", telefono: "" });
+      setCentroErrors({});
       loadInitialData();
       alert("Centro creado exitosamente");
     } catch (err: any) {
@@ -282,7 +459,17 @@ const Dashboard: React.FC = () => {
 
   const handleCreateUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    const errors = validateUsuario(newUsuario);
+    setUsuarioErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Por favor corrige los errores en el formulario");
+      return;
+    }
+
     setLoading(true);
+    setError("");
 
     try {
       // 1. Crear el usuario básico
@@ -331,7 +518,17 @@ const Dashboard: React.FC = () => {
 
   const handleCreateConsulta = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    const errors = validateConsulta(newConsulta);
+    setConsultaErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Por favor corrige los errores en el formulario");
+      return;
+    }
+
     setLoading(true);
+    setError("");
 
     try {
       const consultaData = {
@@ -339,12 +536,18 @@ const Dashboard: React.FC = () => {
         fecha: newConsulta.fecha,
         notas: newConsulta.notas,
         estado: newConsulta.estado,
-        doctorId: isMedico && currentDoctor ? currentDoctor.id : parseInt(newConsulta.doctorId),
-        centroId: isMedico && currentDoctor ? currentDoctor.centro.id : parseInt(newConsulta.centroId),
+        doctorId:
+          isMedico && currentDoctor
+            ? currentDoctor.id
+            : parseInt(newConsulta.doctorId),
+        centroId:
+          isMedico && currentDoctor
+            ? currentDoctor.centro.id
+            : parseInt(newConsulta.centroId),
       };
-      
-      console.log('Sending consulta data:', consultaData); // Debug log
-      
+
+      console.log("Sending consulta data:", consultaData); // Debug log
+
       await consultasAPI.createConsulta(consultaData);
       setNewConsulta({
         paciente: "",
@@ -354,6 +557,7 @@ const Dashboard: React.FC = () => {
         notas: "",
         estado: "programada",
       });
+      setConsultaErrors({});
       loadInitialData();
       alert("Consulta creada exitosamente");
     } catch (err: any) {
@@ -436,11 +640,22 @@ const Dashboard: React.FC = () => {
   // CREATE functions for new entities
   const handleCreateEspecialidad = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    const errors = validateEspecialidad(newEspecialidad);
+    setEspecialidadErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError("Por favor corrige los errores en el formulario");
+      return;
+    }
+
     setLoading(true);
+    setError("");
 
     try {
       await adminAPI.createEspecialidad(newEspecialidad);
       setNewEspecialidad({ nombre: "", descripcion: "" });
+      setEspecialidadErrors({});
       loadInitialData();
       alert("Especialidad creada exitosamente");
     } catch (err: any) {
@@ -620,43 +835,67 @@ const Dashboard: React.FC = () => {
       <h3>Gestión de Centros</h3>
 
       <form onSubmit={handleCreateCentro} className="create-form">
-        <h4>Crear Nuevo Centro</h4>
+        <h4>Crear nuevo centro</h4>
         <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre del centro"
-            value={newCentro.nombre}
-            onChange={(e) =>
-              setNewCentro({ ...newCentro, nombre: e.target.value })
-            }
-            required
-          />
-          <input
-            type="text"
-            placeholder="Dirección"
-            value={newCentro.direccion}
-            onChange={(e) =>
-              setNewCentro({ ...newCentro, direccion: e.target.value })
-            }
-          />
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={newCentro.nombre}
+              onChange={(e) =>
+                setNewCentro({ ...newCentro, nombre: e.target.value })
+              }
+              required
+              className={centroErrors.nombre ? "error" : ""}
+            />
+            {centroErrors.nombre && (
+              <span className="error-message">{centroErrors.nombre}</span>
+            )}
+          </div>
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Dirección"
+              value={newCentro.direccion}
+              onChange={(e) =>
+                setNewCentro({ ...newCentro, direccion: e.target.value })
+              }
+              className={centroErrors.direccion ? "error" : ""}
+            />
+            {centroErrors.direccion && (
+              <span className="error-message">{centroErrors.direccion}</span>
+            )}
+          </div>
         </div>
         <div className="form-row">
-          <input
-            type="text"
-            placeholder="Ciudad"
-            value={newCentro.ciudad}
-            onChange={(e) =>
-              setNewCentro({ ...newCentro, ciudad: e.target.value })
-            }
-          />
-          <input
-            type="text"
-            placeholder="Teléfono"
-            value={newCentro.telefono}
-            onChange={(e) =>
-              setNewCentro({ ...newCentro, telefono: e.target.value })
-            }
-          />
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Ciudad"
+              value={newCentro.ciudad}
+              onChange={(e) =>
+                setNewCentro({ ...newCentro, ciudad: e.target.value })
+              }
+              className={centroErrors.ciudad ? "error" : ""}
+            />
+            {centroErrors.ciudad && (
+              <span className="error-message">{centroErrors.ciudad}</span>
+            )}
+          </div>
+          <div className="form-field">
+            <input
+              type="number"
+              placeholder="Teléfono"
+              value={newCentro.telefono}
+              onChange={(e) =>
+                setNewCentro({ ...newCentro, telefono: e.target.value })
+              }
+              className={centroErrors.telefono ? "error" : ""}
+            />
+            {centroErrors.telefono && (
+              <span className="error-message">{centroErrors.telefono}</span>
+            )}
+          </div>
         </div>
         <button type="submit" disabled={loading} className="submit-btn">
           {loading ? "Creando..." : "Crear Centro"}
@@ -813,16 +1052,15 @@ const Dashboard: React.FC = () => {
 
   const renderUsuarios = () => (
     <div className="usuarios-section">
-      <h3>Gestión de Usuarios y Personal</h3>
+      <h3>Gestión de usuarios y personal</h3>
 
       <form onSubmit={handleCreateUsuario} className="create-form">
-        <h4>Crear Nuevo Usuario</h4>
+        <h4>Crear nuevo usuario</h4>
 
-        {/* Campos básicos para todos los tipos */}
         <div className="form-row">
           <input
             type="text"
-            placeholder="Username"
+            placeholder="Usuario"
             value={newUsuario.username}
             onChange={(e) =>
               setNewUsuario({ ...newUsuario, username: e.target.value })
@@ -831,7 +1069,7 @@ const Dashboard: React.FC = () => {
           />
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Contraseña"
             value={newUsuario.password}
             onChange={(e) =>
               setNewUsuario({ ...newUsuario, password: e.target.value })
@@ -1111,11 +1349,11 @@ const Dashboard: React.FC = () => {
       <h3>Gestión de Especialidades</h3>
 
       <form onSubmit={handleCreateEspecialidad} className="create-form">
-        <h4>Crear Nueva Especialidad</h4>
+        <h4>Crear nueva especialidad</h4>
         <div className="form-row">
           <input
             type="text"
-            placeholder="Nombre de la especialidad"
+            placeholder="Nombre"
             value={newEspecialidad.nombre}
             onChange={(e) =>
               setNewEspecialidad({ ...newEspecialidad, nombre: e.target.value })
@@ -1256,7 +1494,7 @@ const Dashboard: React.FC = () => {
       <h3>Reportes Médicos</h3>
 
       <div className="filters-form">
-        <h4>Filtros de Reporte</h4>
+        <h4>Doctores</h4>
         <div className="form-row">
           <select
             onChange={(e) => {
@@ -1265,7 +1503,7 @@ const Dashboard: React.FC = () => {
               }
             }}
           >
-            <option value="">Seleccionar Médico</option>
+            <option value="">Seleccionar Doctor</option>
             {medicos.map((medico) => (
               <option key={medico.id} value={medico.id}>
                 Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
@@ -1276,11 +1514,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="data-list">
-        <h4>Consultas del Médico</h4>
         {reportes.length === 0 ? (
-          <p>Selecciona un médico para ver su reporte</p>
+          <p>Seleccione un doctor para ver su reporte.</p>
         ) : (
           <div className="table-container">
+            <h4>Consultas del Médico</h4>
             <table>
               <thead>
                 <tr>
@@ -1347,7 +1585,8 @@ const Dashboard: React.FC = () => {
           )}
           {isMedico && currentDoctor && (
             <div className="auto-populated-field">
-              <strong>Médico:</strong> Dr/a. {currentDoctor.nombre} - {currentDoctor.especialidad?.nombre}
+              <strong>Médico:</strong> Dr/a. {currentDoctor.nombre} -{" "}
+              {currentDoctor.especialidad?.nombre}
             </div>
           )}
         </div>

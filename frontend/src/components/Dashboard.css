@@ -3,6 +3,56 @@
   background-color: #fafafa;
 }
 
+h3,
+h4 {
+  margin-bottom: 10px;
+}
+
+/* Form Validation Styles */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.form-row .form-field {
+  margin-right: 1rem;
+}
+
+.form-row .form-field:last-child {
+  margin-right: 0;
+}
+
+input.error,
+select.error,
+textarea.error {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments for form fields */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+
+  .form-row .form-field {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+
+  .form-row .form-field:last-child {
+    margin-bottom: 0;
+  }
+}
+
 .dashboard-header {
   background: #ffffff;
   color: #333333;
@@ -642,13 +692,15 @@ table tr:hover {
   border-radius: 4px;
   border-left: 4px solid #333;
   white-space: pre-wrap;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 0.9rem;
   line-height: 1.4;
 }
 
 /* Improved table styling for inline editing */
-table input, table select, table textarea {
+table input,
+table select,
+table textarea {
   width: 100%;
   padding: 0.25rem;
   border: 1px solid #ddd;
@@ -662,7 +714,8 @@ table textarea {
 }
 
 /* Enhanced form styling */
-.create-form select, .create-form textarea {
+.create-form select,
+.create-form textarea {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #d0d0d0;
@@ -677,7 +730,8 @@ table textarea {
   font-family: inherit;
 }
 
-.create-form select:focus, .create-form textarea:focus {
+.create-form select:focus,
+.create-form textarea:focus {
   outline: none;
   border-color: #333;
 }
