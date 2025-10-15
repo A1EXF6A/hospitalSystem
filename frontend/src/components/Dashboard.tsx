@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { adminAPI, consultasAPI } from "../services/api";
+import jsPDF from "jspdf";
 import "./Dashboard.css";
 
 interface Centro {
@@ -82,6 +83,8 @@ const Dashboard: React.FC = () => {
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [reportes, setReportes] = useState<any[]>([]);
+  const [selectedDoctorForReport, setSelectedDoctorForReport] =
+    useState<Medico | null>(null);
   const [currentDoctor, setCurrentDoctor] = useState<Medico | null>(null);
 
   // Dashboard stats
@@ -744,11 +747,124 @@ const Dashboard: React.FC = () => {
     try {
       const response = await consultasAPI.getReportByDoctor(doctorId, from, to);
       setReportes(response.data.consultas || []);
+
+      // Set the selected doctor for the PDF generation
+      const doctor = medicos.find((m) => m.id === doctorId);
+      setSelectedDoctorForReport(doctor || null);
     } catch (err: any) {
       setError(err.response?.data?.message || "Error cargando reporte");
     } finally {
       setLoading(false);
     }
+  };
+
+  const generatePDFReport = () => {
+    if (!selectedDoctorForReport || reportes.length === 0) {
+      alert("No hay datos para generar el reporte");
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    // Título principal
+    doc.setFontSize(20);
+    doc.text("Reporte Médico", 20, 20);
+
+    // Información del médico
+    doc.setFontSize(14);
+    doc.text(`Doctor: ${selectedDoctorForReport.nombre}`, 20, 35);
+    doc.text(
+      `Especialidad: ${selectedDoctorForReport.especialidad?.nombre || "N/A"}`,
+      20,
+      45,
+    );
+    doc.text(
+      `Centro: ${selectedDoctorForReport.centro?.nombre || "N/A"}`,
+      20,
+      55,
+    );
+    doc.text(
+      `Fecha de generación: ${new Date().toLocaleDateString("es-ES")}`,
+      20,
+      65,
+    );
+
+    // Estadísticas
+    const totalConsultas = reportes.length;
+    const consultasCompletadas = reportes.filter(
+      (c) => c.estado === "completada",
+    ).length;
+    const consultasPendientes = reportes.filter(
+      (c) => c.estado === "programada",
+    ).length;
+    const consultasCanceladas = reportes.filter(
+      (c) => c.estado === "cancelada",
+    ).length;
+
+    doc.setFontSize(12);
+    doc.text("Resumen Estadístico:", 20, 80);
+    doc.text(`Total de consultas: ${totalConsultas}`, 25, 90);
+    doc.text(`Completadas: ${consultasCompletadas}`, 25, 100);
+    doc.text(`Pendientes: ${consultasPendientes}`, 25, 110);
+    doc.text(`Canceladas: ${consultasCanceladas}`, 25, 120);
+
+    // Tabla de consultas
+    let yPosition = 140;
+    doc.text("Detalle de Consultas:", 20, yPosition);
+    yPosition += 10;
+
+    // Cabecera de tabla
+    doc.setFontSize(10);
+    doc.text("ID", 20, yPosition);
+    doc.text("Paciente", 40, yPosition);
+    doc.text("Fecha", 90, yPosition);
+    doc.text("Estado", 140, yPosition);
+    doc.text("Notas", 170, yPosition);
+    yPosition += 10;
+
+    // Línea separadora
+    doc.line(20, yPosition - 5, 190, yPosition - 5);
+
+    // Datos de las consultas
+    reportes.forEach((consulta, index) => {
+      if (yPosition > 270) {
+        // Nueva página si es necesario
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      const fecha = new Date(consulta.fecha).toLocaleDateString("es-ES");
+      const notasCortas = consulta.notas
+        ? consulta.notas.length > 15
+          ? consulta.notas.substring(0, 15) + "..."
+          : consulta.notas
+        : "Sin notas";
+
+      doc.text(consulta.id.toString(), 20, yPosition);
+      doc.text(
+        consulta.paciente.length > 20
+          ? consulta.paciente.substring(0, 20) + "..."
+          : consulta.paciente,
+        40,
+        yPosition,
+      );
+      doc.text(fecha, 90, yPosition);
+      doc.text(consulta.estado, 140, yPosition);
+      doc.text(notasCortas, 170, yPosition);
+      yPosition += 8;
+    });
+
+    // Pie de página
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Página ${i} de ${pageCount}`, 170, 290);
+      doc.text("Sistema de Gestión Hospitalaria", 20, 290);
+    }
+
+    const fileName = `reporte_${selectedDoctorForReport.nombre.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+    doc.save(fileName);
   };
 
   const renderOverview = () => (
@@ -1679,7 +1795,16 @@ const Dashboard: React.FC = () => {
           <p>Seleccione un doctor para ver su reporte.</p>
         ) : (
           <div className="table-container">
-            <h4>Consultas del Médico</h4>
+            <div className="report-header">
+              <h4>Consultas del Médico</h4>
+              <button
+                onClick={generatePDFReport}
+                className="pdf-download-btn"
+                disabled={!selectedDoctorForReport || reportes.length === 0}
+              >
+                Descargar PDF
+              </button>
+            </div>
             <table>
               <thead>
                 <tr>
