@@ -698,6 +698,24 @@ table textarea {
   font-weight: 500;
 }
 
+/* Auto-populated field styling */
+.auto-populated-field {
+  padding: 0.75rem;
+  background-color: #f8f8f8;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.auto-populated-field strong {
+  color: #333;
+  font-weight: 500;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard-header {

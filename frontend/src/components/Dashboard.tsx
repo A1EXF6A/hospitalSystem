@@ -68,6 +68,7 @@ const Dashboard: React.FC = () => {
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [reportes, setReportes] = useState<any[]>([]);
+  const [currentDoctor, setCurrentDoctor] = useState<Medico | null>(null);
 
   // Dashboard stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -122,6 +123,38 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, [activeTab]);
+
+  // Load current doctor info when user is a doctor
+  useEffect(() => {
+    if (isMedico && user?.id) {
+      loadCurrentDoctor();
+    }
+  }, [isMedico, user?.id]);
+
+  const loadCurrentDoctor = async () => {
+    try {
+      const medicosResponse = await adminAPI.getMedicos();
+      const doctors = medicosResponse.data;
+      // Find the doctor record that matches the logged-in user's center
+      // For doctors, we'll use their centroId to find their doctor record
+      const doctor = doctors.find((doc: Medico) => 
+        doc.centro.id === user?.centroId
+      );
+      if (doctor) {
+        setCurrentDoctor(doctor);
+      } else {
+        // If no exact match by center, try to find by any available criteria
+        // This is a fallback - you might need to adjust based on your data structure
+        console.warn('No doctor found matching current user. Using first doctor from user center as fallback.');
+        const fallbackDoctor = doctors.find((doc: Medico) => doc.centro.id === user?.centroId);
+        if (fallbackDoctor) {
+          setCurrentDoctor(fallbackDoctor);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading current doctor:', error);
+    }
+  };
 
   // Reset form function
   const resetUsuarioForm = () => {
@@ -303,8 +336,8 @@ const Dashboard: React.FC = () => {
     try {
       const consultaData = {
         ...newConsulta,
-        doctorId: parseInt(newConsulta.doctorId),
-        centroId: parseInt(newConsulta.centroId),
+        doctorId: isMedico && currentDoctor ? currentDoctor.id : parseInt(newConsulta.doctorId),
+        centroId: isMedico && currentDoctor ? currentDoctor.centro.id : parseInt(newConsulta.centroId),
       };
       await consultasAPI.createConsulta(consultaData);
       setNewConsulta({
@@ -1290,36 +1323,50 @@ const Dashboard: React.FC = () => {
             }
             required
           />
-          <select
-            value={newConsulta.doctorId}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, doctorId: e.target.value })
-            }
-            required
-          >
-            <option value="">Seleccionar Médico</option>
-            {medicos.map((medico) => (
-              <option key={medico.id} value={medico.id}>
-                Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
-              </option>
-            ))}
-          </select>
+          {!isMedico && (
+            <select
+              value={newConsulta.doctorId}
+              onChange={(e) =>
+                setNewConsulta({ ...newConsulta, doctorId: e.target.value })
+              }
+              required
+            >
+              <option value="">Seleccionar Médico</option>
+              {medicos.map((medico) => (
+                <option key={medico.id} value={medico.id}>
+                  Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+          {isMedico && currentDoctor && (
+            <div className="auto-populated-field">
+              <strong>Médico:</strong> Dr/a. {currentDoctor.nombre} - {currentDoctor.especialidad?.nombre}
+            </div>
+          )}
         </div>
         <div className="form-row">
-          <select
-            value={newConsulta.centroId}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, centroId: e.target.value })
-            }
-            required
-          >
-            <option value="">Seleccionar Centro</option>
-            {centros.map((centro) => (
-              <option key={centro.id} value={centro.id}>
-                {centro.nombre}
-              </option>
-            ))}
-          </select>
+          {!isMedico && (
+            <select
+              value={newConsulta.centroId}
+              onChange={(e) =>
+                setNewConsulta({ ...newConsulta, centroId: e.target.value })
+              }
+              required
+            >
+              <option value="">Seleccionar Centro</option>
+              {centros.map((centro) => (
+                <option key={centro.id} value={centro.id}>
+                  {centro.nombre}
+                </option>
+              ))}
+            </select>
+          )}
+          {isMedico && currentDoctor && (
+            <div className="auto-populated-field">
+              <strong>Centro:</strong> {currentDoctor.centro.nombre}
+            </div>
+          )}
           <input
             type="datetime-local"
             value={newConsulta.fecha}
