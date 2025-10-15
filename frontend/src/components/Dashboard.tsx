@@ -335,10 +335,16 @@ const Dashboard: React.FC = () => {
 
     try {
       const consultaData = {
-        ...newConsulta,
+        paciente: newConsulta.paciente,
+        fecha: newConsulta.fecha,
+        notas: newConsulta.notas,
+        estado: newConsulta.estado,
         doctorId: isMedico && currentDoctor ? currentDoctor.id : parseInt(newConsulta.doctorId),
         centroId: isMedico && currentDoctor ? currentDoctor.centro.id : parseInt(newConsulta.centroId),
       };
+      
+      console.log('Sending consulta data:', consultaData); // Debug log
+      
       await consultasAPI.createConsulta(consultaData);
       setNewConsulta({
         paciente: "",
