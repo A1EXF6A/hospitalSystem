@@ -229,8 +229,8 @@ const Dashboard: React.FC = () => {
 
       if (!usuario.cedula.trim()) {
         errors.cedula = "La cédula es requerida";
-      } else if (!/^\d{6,15}$/.test(usuario.cedula)) {
-        errors.cedula = "La cédula debe contener entre 6 y 15 dígitos";
+      } else if (!/^\d{10}$/.test(usuario.cedula)) {
+        errors.cedula = "La cédula debe contener 10 dígitos";
       }
     }
 
@@ -319,6 +319,76 @@ const Dashboard: React.FC = () => {
     }
 
     return errors;
+  };
+
+  // Form completion check functions
+  const isCentroFormComplete = () => {
+    return (
+      newCentro.nombre.trim() !== "" &&
+      newCentro.direccion.trim() !== "" &&
+      newCentro.ciudad.trim() !== "" &&
+      newCentro.telefono.trim() !== ""
+    );
+  };
+
+  const isUsuarioFormComplete = () => {
+    // Basic fields required for all users
+    if (!newUsuario.username.trim() || !newUsuario.password.trim()) {
+      return false;
+    }
+
+    // Additional fields for employees and doctors
+    if (newUsuario.role === "medico" || newUsuario.role === "empleado") {
+      if (
+        !newUsuario.centroId ||
+        !newUsuario.nombre.trim() ||
+        !newUsuario.cedula.trim()
+      ) {
+        return false;
+      }
+    }
+
+    // Employee specific fields
+    if (newUsuario.role === "empleado") {
+      if (!newUsuario.cargo.trim()) {
+        return false;
+      }
+    }
+
+    // Doctor specific fields
+    if (newUsuario.role === "medico") {
+      if (
+        !newUsuario.correo.trim() ||
+        !newUsuario.telefono.trim() ||
+        !newUsuario.especialidadId
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const isEspecialidadFormComplete = () => {
+    return (
+      newEspecialidad.nombre.trim() !== "" &&
+      newEspecialidad.descripcion.trim() !== ""
+    );
+  };
+
+  const isConsultaFormComplete = () => {
+    if (!newConsulta.paciente.trim() || !newConsulta.fecha) {
+      return false;
+    }
+
+    // For non-doctors, doctor and center are required
+    if (!isMedico) {
+      if (!newConsulta.doctorId || !newConsulta.centroId) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   // Reset form function
@@ -897,8 +967,12 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? "Creando..." : "Crear Centro"}
+        <button
+          type="submit"
+          disabled={!isCentroFormComplete()}
+          className="submit-btn"
+        >
+          Crear Centro
         </button>
       </form>
 
@@ -1058,55 +1132,79 @@ const Dashboard: React.FC = () => {
         <h4>Crear nuevo usuario</h4>
 
         <div className="form-row">
-          <input
-            type="text"
-            placeholder="Usuario"
-            value={newUsuario.username}
-            onChange={(e) =>
-              setNewUsuario({ ...newUsuario, username: e.target.value })
-            }
-            required
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={newUsuario.password}
-            onChange={(e) =>
-              setNewUsuario({ ...newUsuario, password: e.target.value })
-            }
-            required
-          />
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Usuario"
+              value={newUsuario.username}
+              onChange={(e) =>
+                setNewUsuario({ ...newUsuario, username: e.target.value })
+              }
+              required
+              className={usuarioErrors.username ? "error" : ""}
+            />
+            {usuarioErrors.username && (
+              <span className="error-message">{usuarioErrors.username}</span>
+            )}
+          </div>
+          <div className="form-field">
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={newUsuario.password}
+              onChange={(e) =>
+                setNewUsuario({ ...newUsuario, password: e.target.value })
+              }
+              required
+              className={usuarioErrors.password ? "error" : ""}
+            />
+            {usuarioErrors.password && (
+              <span className="error-message">{usuarioErrors.password}</span>
+            )}
+          </div>
         </div>
 
         <div className="form-row">
-          <select
-            value={newUsuario.role}
-            onChange={(e) => {
-              setNewUsuario({ ...newUsuario, role: e.target.value });
-            }}
-            required
-          >
-            <option value="empleado">Empleado</option>
-            <option value="medico">Médico</option>
-            <option value="admin">Administrador</option>
-          </select>
+          <div className="form-field">
+            <select
+              value={newUsuario.role}
+              onChange={(e) => {
+                setNewUsuario({ ...newUsuario, role: e.target.value });
+              }}
+              required
+              className={usuarioErrors.role ? "error" : ""}
+            >
+              <option value="empleado">Empleado</option>
+              <option value="medico">Médico</option>
+              <option value="admin">Administrador</option>
+            </select>
+            {usuarioErrors.role && (
+              <span className="error-message">{usuarioErrors.role}</span>
+            )}
+          </div>
 
           {/* Centro solo para médicos y empleados */}
           {(newUsuario.role === "medico" || newUsuario.role === "empleado") && (
-            <select
-              value={newUsuario.centroId}
-              onChange={(e) =>
-                setNewUsuario({ ...newUsuario, centroId: e.target.value })
-              }
-              required
-            >
-              <option value="">Seleccionar Centro</option>
-              {centros.map((centro) => (
-                <option key={centro.id} value={centro.id}>
-                  {centro.nombre}
-                </option>
-              ))}
-            </select>
+            <div className="form-field">
+              <select
+                value={newUsuario.centroId}
+                onChange={(e) =>
+                  setNewUsuario({ ...newUsuario, centroId: e.target.value })
+                }
+                required
+                className={usuarioErrors.centroId ? "error" : ""}
+              >
+                <option value="">Seleccionar Centro</option>
+                {centros.map((centro) => (
+                  <option key={centro.id} value={centro.id}>
+                    {centro.nombre}
+                  </option>
+                ))}
+              </select>
+              {usuarioErrors.centroId && (
+                <span className="error-message">{usuarioErrors.centroId}</span>
+              )}
+            </div>
           )}
         </div>
 
@@ -1114,24 +1212,36 @@ const Dashboard: React.FC = () => {
         {(newUsuario.role === "medico" || newUsuario.role === "empleado") && (
           <>
             <div className="form-row">
-              <input
-                type="text"
-                placeholder="Nombre completo"
-                value={newUsuario.nombre}
-                onChange={(e) =>
-                  setNewUsuario({ ...newUsuario, nombre: e.target.value })
-                }
-                required
-              />
-              <input
-                type="text"
-                placeholder="Cédula"
-                value={newUsuario.cedula}
-                onChange={(e) =>
-                  setNewUsuario({ ...newUsuario, cedula: e.target.value })
-                }
-                required
-              />
+              <div className="form-field">
+                <input
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={newUsuario.nombre}
+                  onChange={(e) =>
+                    setNewUsuario({ ...newUsuario, nombre: e.target.value })
+                  }
+                  required
+                  className={usuarioErrors.nombre ? "error" : ""}
+                />
+                {usuarioErrors.nombre && (
+                  <span className="error-message">{usuarioErrors.nombre}</span>
+                )}
+              </div>
+              <div className="form-field">
+                <input
+                  type="text"
+                  placeholder="Cédula"
+                  value={newUsuario.cedula}
+                  onChange={(e) =>
+                    setNewUsuario({ ...newUsuario, cedula: e.target.value })
+                  }
+                  required
+                  className={usuarioErrors.cedula ? "error" : ""}
+                />
+                {usuarioErrors.cedula && (
+                  <span className="error-message">{usuarioErrors.cedula}</span>
+                )}
+              </div>
             </div>
           </>
         )}
@@ -1139,15 +1249,21 @@ const Dashboard: React.FC = () => {
         {/* Campos específicos para empleados */}
         {newUsuario.role === "empleado" && (
           <div className="form-row">
-            <input
-              type="text"
-              placeholder="Cargo"
-              value={newUsuario.cargo}
-              onChange={(e) =>
-                setNewUsuario({ ...newUsuario, cargo: e.target.value })
-              }
-              required
-            />
+            <div className="form-field">
+              <input
+                type="text"
+                placeholder="Cargo"
+                value={newUsuario.cargo}
+                onChange={(e) =>
+                  setNewUsuario({ ...newUsuario, cargo: e.target.value })
+                }
+                required
+                className={usuarioErrors.cargo ? "error" : ""}
+              />
+              {usuarioErrors.cargo && (
+                <span className="error-message">{usuarioErrors.cargo}</span>
+              )}
+            </div>
           </div>
         )}
 
@@ -1155,51 +1271,75 @@ const Dashboard: React.FC = () => {
         {newUsuario.role === "medico" && (
           <>
             <div className="form-row">
-              <input
-                type="email"
-                placeholder="Correo electrónico"
-                value={newUsuario.correo}
-                onChange={(e) =>
-                  setNewUsuario({ ...newUsuario, correo: e.target.value })
-                }
-                required
-              />
-              <input
-                type="tel"
-                placeholder="Teléfono"
-                value={newUsuario.telefono}
-                onChange={(e) =>
-                  setNewUsuario({ ...newUsuario, telefono: e.target.value })
-                }
-                required
-              />
+              <div className="form-field">
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={newUsuario.correo}
+                  onChange={(e) =>
+                    setNewUsuario({ ...newUsuario, correo: e.target.value })
+                  }
+                  required
+                  className={usuarioErrors.correo ? "error" : ""}
+                />
+                {usuarioErrors.correo && (
+                  <span className="error-message">{usuarioErrors.correo}</span>
+                )}
+              </div>
+              <div className="form-field">
+                <input
+                  type="tel"
+                  placeholder="Teléfono"
+                  value={newUsuario.telefono}
+                  onChange={(e) =>
+                    setNewUsuario({ ...newUsuario, telefono: e.target.value })
+                  }
+                  required
+                  className={usuarioErrors.telefono ? "error" : ""}
+                />
+                {usuarioErrors.telefono && (
+                  <span className="error-message">
+                    {usuarioErrors.telefono}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="form-row">
-              <select
-                value={newUsuario.especialidadId}
-                onChange={(e) =>
-                  setNewUsuario({
-                    ...newUsuario,
-                    especialidadId: e.target.value,
-                  })
-                }
-                required
-              >
-                <option value="">Seleccionar Especialidad</option>
-                {especialidades.map((esp) => (
-                  <option key={esp.id} value={esp.id}>
-                    {esp.nombre}
-                  </option>
-                ))}
-              </select>
+              <div className="form-field">
+                <select
+                  value={newUsuario.especialidadId}
+                  onChange={(e) =>
+                    setNewUsuario({
+                      ...newUsuario,
+                      especialidadId: e.target.value,
+                    })
+                  }
+                  required
+                  className={usuarioErrors.especialidadId ? "error" : ""}
+                >
+                  <option value="">Seleccionar Especialidad</option>
+                  {especialidades.map((esp) => (
+                    <option key={esp.id} value={esp.id}>
+                      {esp.nombre}
+                    </option>
+                  ))}
+                </select>
+                {usuarioErrors.especialidadId && (
+                  <span className="error-message">
+                    {usuarioErrors.especialidadId}
+                  </span>
+                )}
+              </div>
             </div>
           </>
         )}
 
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading
-            ? "Creando..."
-            : `Crear ${newUsuario.role === "admin" ? "Administrador" : newUsuario.role === "medico" ? "Médico" : "Empleado"}`}
+        <button
+          type="submit"
+          disabled={!isUsuarioFormComplete()}
+          className="submit-btn"
+        >
+          {`Crear ${newUsuario.role === "admin" ? "Administrador" : newUsuario.role === "medico" ? "Médico" : "Empleado"}`}
         </button>
       </form>
 
@@ -1213,9 +1353,9 @@ const Dashboard: React.FC = () => {
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Username</th>
+                  <th>Usuario</th>
                   <th>Rol</th>
-                  <th>Centro ID</th>
+                  <th>Centro</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -1351,31 +1491,52 @@ const Dashboard: React.FC = () => {
       <form onSubmit={handleCreateEspecialidad} className="create-form">
         <h4>Crear nueva especialidad</h4>
         <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre"
-            value={newEspecialidad.nombre}
-            onChange={(e) =>
-              setNewEspecialidad({ ...newEspecialidad, nombre: e.target.value })
-            }
-            required
-          />
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={newEspecialidad.nombre}
+              onChange={(e) =>
+                setNewEspecialidad({
+                  ...newEspecialidad,
+                  nombre: e.target.value,
+                })
+              }
+              required
+              className={especialidadErrors.nombre ? "error" : ""}
+            />
+            {especialidadErrors.nombre && (
+              <span className="error-message">{especialidadErrors.nombre}</span>
+            )}
+          </div>
         </div>
         <div className="form-row">
-          <textarea
-            placeholder="Descripción"
-            value={newEspecialidad.descripcion}
-            onChange={(e) =>
-              setNewEspecialidad({
-                ...newEspecialidad,
-                descripcion: e.target.value,
-              })
-            }
-            rows={3}
-          />
+          <div className="form-field">
+            <textarea
+              placeholder="Descripción"
+              value={newEspecialidad.descripcion}
+              onChange={(e) =>
+                setNewEspecialidad({
+                  ...newEspecialidad,
+                  descripcion: e.target.value,
+                })
+              }
+              rows={3}
+              className={especialidadErrors.descripcion ? "error" : ""}
+            />
+            {especialidadErrors.descripcion && (
+              <span className="error-message">
+                {especialidadErrors.descripcion}
+              </span>
+            )}
+          </div>
         </div>
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? "Creando..." : "Crear Especialidad"}
+        <button
+          type="submit"
+          disabled={!isEspecialidadFormComplete()}
+          className="submit-btn"
+        >
+          Crear Especialidad
         </button>
       </form>
 
@@ -1503,7 +1664,7 @@ const Dashboard: React.FC = () => {
               }
             }}
           >
-            <option value="">Seleccionar Doctor</option>
+            <option value="None">Seleccionar Doctor</option>
             {medicos.map((medico) => (
               <option key={medico.id} value={medico.id}>
                 Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
@@ -1558,30 +1719,42 @@ const Dashboard: React.FC = () => {
       <form onSubmit={handleCreateConsulta} className="create-form">
         <h4>Crear Nueva Consulta</h4>
         <div className="form-row">
-          <input
-            type="text"
-            placeholder="Nombre del paciente"
-            value={newConsulta.paciente}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, paciente: e.target.value })
-            }
-            required
-          />
-          {!isMedico && (
-            <select
-              value={newConsulta.doctorId}
+          <div className="form-field">
+            <input
+              type="text"
+              placeholder="Nombre del paciente"
+              value={newConsulta.paciente}
               onChange={(e) =>
-                setNewConsulta({ ...newConsulta, doctorId: e.target.value })
+                setNewConsulta({ ...newConsulta, paciente: e.target.value })
               }
               required
-            >
-              <option value="">Seleccionar Médico</option>
-              {medicos.map((medico) => (
-                <option key={medico.id} value={medico.id}>
-                  Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
-                </option>
-              ))}
-            </select>
+              className={consultaErrors.paciente ? "error" : ""}
+            />
+            {consultaErrors.paciente && (
+              <span className="error-message">{consultaErrors.paciente}</span>
+            )}
+          </div>
+          {!isMedico && (
+            <div className="form-field">
+              <select
+                value={newConsulta.doctorId}
+                onChange={(e) =>
+                  setNewConsulta({ ...newConsulta, doctorId: e.target.value })
+                }
+                required
+                className={consultaErrors.doctorId ? "error" : ""}
+              >
+                <option value="">Seleccionar Médico</option>
+                {medicos.map((medico) => (
+                  <option key={medico.id} value={medico.id}>
+                    Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
+                  </option>
+                ))}
+              </select>
+              {consultaErrors.doctorId && (
+                <span className="error-message">{consultaErrors.doctorId}</span>
+              )}
+            </div>
           )}
           {isMedico && currentDoctor && (
             <div className="auto-populated-field">
@@ -1592,57 +1765,85 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="form-row">
           {!isMedico && (
-            <select
-              value={newConsulta.centroId}
-              onChange={(e) =>
-                setNewConsulta({ ...newConsulta, centroId: e.target.value })
-              }
-              required
-            >
-              <option value="">Seleccionar Centro</option>
-              {centros.map((centro) => (
-                <option key={centro.id} value={centro.id}>
-                  {centro.nombre}
-                </option>
-              ))}
-            </select>
+            <div className="form-field">
+              <select
+                value={newConsulta.centroId}
+                onChange={(e) =>
+                  setNewConsulta({ ...newConsulta, centroId: e.target.value })
+                }
+                required
+                className={consultaErrors.centroId ? "error" : ""}
+              >
+                <option value="">Seleccionar Centro</option>
+                {centros.map((centro) => (
+                  <option key={centro.id} value={centro.id}>
+                    {centro.nombre}
+                  </option>
+                ))}
+              </select>
+              {consultaErrors.centroId && (
+                <span className="error-message">{consultaErrors.centroId}</span>
+              )}
+            </div>
           )}
           {isMedico && currentDoctor && (
             <div className="auto-populated-field">
               <strong>Centro:</strong> {currentDoctor.centro.nombre}
             </div>
           )}
-          <input
-            type="datetime-local"
-            value={newConsulta.fecha}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, fecha: e.target.value })
-            }
-            required
-          />
+          <div className="form-field">
+            <input
+              type="datetime-local"
+              value={newConsulta.fecha}
+              onChange={(e) =>
+                setNewConsulta({ ...newConsulta, fecha: e.target.value })
+              }
+              required
+              className={consultaErrors.fecha ? "error" : ""}
+            />
+            {consultaErrors.fecha && (
+              <span className="error-message">{consultaErrors.fecha}</span>
+            )}
+          </div>
         </div>
         <div className="form-row">
-          <textarea
-            placeholder="Notas (opcional)"
-            value={newConsulta.notas}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, notas: e.target.value })
-            }
-            rows={3}
-          />
-          <select
-            value={newConsulta.estado}
-            onChange={(e) =>
-              setNewConsulta({ ...newConsulta, estado: e.target.value })
-            }
-          >
-            <option value="programada">Programada</option>
-            <option value="completada">Completada</option>
-            <option value="cancelada">Cancelada</option>
-          </select>
+          <div className="form-field">
+            <textarea
+              placeholder="Notas (opcional)"
+              value={newConsulta.notas}
+              onChange={(e) =>
+                setNewConsulta({ ...newConsulta, notas: e.target.value })
+              }
+              rows={3}
+              className={consultaErrors.notas ? "error" : ""}
+            />
+            {consultaErrors.notas && (
+              <span className="error-message">{consultaErrors.notas}</span>
+            )}
+          </div>
+          <div className="form-field">
+            <select
+              value={newConsulta.estado}
+              onChange={(e) =>
+                setNewConsulta({ ...newConsulta, estado: e.target.value })
+              }
+              className={consultaErrors.estado ? "error" : ""}
+            >
+              <option value="programada">Programada</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+            {consultaErrors.estado && (
+              <span className="error-message">{consultaErrors.estado}</span>
+            )}
+          </div>
         </div>
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? "Creando..." : "Crear Consulta"}
+        <button
+          type="submit"
+          disabled={!isConsultaFormComplete()}
+          className="submit-btn"
+        >
+          Crear Consulta
         </button>
       </form>
 
@@ -1973,7 +2174,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>Hospital System Dashboard</h1>
+        <h1>Dashboard</h1>
         <div className="user-menu">
           <span>
             {user?.username} ({user?.role})
