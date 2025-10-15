@@ -3,7 +3,7 @@ import { CentroController } from "../controllers/centro.controller";
 import { EmpleadoController } from "../controllers/empleado.controller";
 import { EspecialidadController } from "../controllers/especialidad.controller";
 import { MedicoController } from "../controllers/medico.controller";
-import { validateUser, createUser, getUsers } from "../controllers/usuario.controller";
+import { validateUser, createUser, getUsers, updateUser, deleteUser } from "../controllers/usuario.controller";
 import { createInitialAdmin } from "../controllers/setup.controller";
 import { authenticateToken, requireAdmin } from "../middleware/auth.middleware";
 
@@ -50,5 +50,7 @@ router.delete("/medicos/:id", MedicoController.delete);
 // Usuarios
 router.post("/usuarios", createUser);
 router.get("/usuarios", getUsers);
+router.put("/usuarios/:id", updateUser);
+router.delete("/usuarios/:id", deleteUser);
 
 export default router;

@@ -23,7 +23,6 @@ interface Empleado {
   id: number;
   nombre: string;
   cedula: string;
-  cargo: string;
   centro: { id: number; nombre: string };
 }
 
@@ -1363,25 +1362,7 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Campos específicos para empleados */}
-        {newUsuario.role === "empleado" && (
-          <div className="form-row">
-            <div className="form-field">
-              <input
-                type="text"
-                placeholder="Cargo"
-                value={newUsuario.cargo}
-                onChange={(e) =>
-                  setNewUsuario({ ...newUsuario, cargo: e.target.value })
-                }
-                required
-                className={usuarioErrors.cargo ? "error" : ""}
-              />
-              {usuarioErrors.cargo && (
-                <span className="error-message">{usuarioErrors.cargo}</span>
-              )}
-            </div>
-          </div>
-        )}
+        {newUsuario.role === "empleado" && <div className="form-row"></div>}
 
         {/* Campos específicos para médicos */}
         {newUsuario.role === "medico" && (
@@ -2221,9 +2202,6 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                   <strong>Cédula:</strong> {viewingItem.cedula}
-                </div>
-                <div>
-                  <strong>Cargo:</strong> {viewingItem.cargo}
                 </div>
                 <div>
                   <strong>Centro:</strong> {viewingItem.centro?.nombre}
