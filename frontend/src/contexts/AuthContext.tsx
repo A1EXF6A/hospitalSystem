@@ -6,12 +6,14 @@ interface User {
   username: string;
   role: 'admin' | 'medico' | 'empleado';
   centroId?: number;
+  doctorId?: number;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (username: string, password: string) => Promise<boolean>;
+  googleLogin: (credential: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -47,19 +49,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const validateToken = async (tokenToValidate: string) => {
     try {
+      console.log('Validating token:', tokenToValidate.substring(0, 50) + '...');
       const response = await axios.get('http://localhost:5158/api/auth/validate', {
         headers: {
           Authorization: `Bearer ${tokenToValidate}`
         }
       });
       
+      console.log('Token validation response:', response.data);
+      
       if (response.data.valid) {
-        setUser({
+        const userData = {
           id: response.data.id,
           username: response.data.username,
           role: response.data.role,
-          centroId: response.data.centroId
-        });
+          centroId: response.data.centroId,
+          doctorId: response.data.doctorId
+        };
+        console.log('Setting user data:', userData);
+        setUser(userData);
       } else {
         logout();
       }
@@ -71,52 +79,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Try Gateway API first, fallback to direct Admin API
-      let response;
-      try {
-        response = await axios.post('http://localhost:5158/api/auth/login', {
-          username,
-          password
-        });
-      } catch (gatewayError) {
-        console.warn('Gateway API failed, trying direct Admin API login...');
-        // Fallback: validate credentials directly with Admin API
-        const validateResponse = await axios.post('http://localhost:3000/usuarios/validate', {
-          username,
-          password
-        });
-        
-        if (validateResponse.data) {
-          // Create a simple token for demo purposes (in production, this should come from Gateway)
-          const simpleToken = btoa(JSON.stringify({
-            id: validateResponse.data.id,
-            username: validateResponse.data.username,
-            role: validateResponse.data.role,
-            centroId: validateResponse.data.centroId,
-            exp: Date.now() + (8 * 60 * 60 * 1000) // 8 hours
-          }));
-          
-          response = { data: { token: simpleToken } };
-          
-          setUser({
-            id: validateResponse.data.id.toString(),
-            username: validateResponse.data.username,
-            role: validateResponse.data.role,
-            centroId: validateResponse.data.centroId
-          });
-        } else {
-          throw new Error('Invalid credentials');
-        }
-      }
+      console.log('Attempting login with Gateway API...');
+      const response = await axios.post('http://localhost:5158/api/auth/login', {
+        username,
+        password
+      });
 
       if (response.data.token) {
+        console.log('Login successful, token received');
         setToken(response.data.token);
         localStorage.setItem('token', response.data.token);
         
-        // If we got token from Gateway, validate it to get user info
-        if (!user) {
-          await validateToken(response.data.token);
-        }
+        // Validate token to get user info
+        await validateToken(response.data.token);
         
         return true;
       }
@@ -124,6 +99,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Login failed:', error);
       return false;
+    }
+  };
+
+  const googleLogin = async (credential: string): Promise<boolean> => {
+    try {
+      const response = await axios.post('http://localhost:5158/api/auth/google-login', {
+        credential
+      });
+
+      if (response.data.token) {
+        setToken(response.data.token);
+        localStorage.setItem('token', response.data.token);
+        
+        // Validate token to get user info
+        await validateToken(response.data.token);
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      
+      // Check if the error contains user info (user not registered)
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message && errorData.userInfo) {
+          throw new Error(errorData.message);
+        }
+      }
+      
+      throw new Error('Error al iniciar sesión con Google');
     }
   };
 
@@ -137,6 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     token,
     login,
+    googleLogin,
     logout,
     isAuthenticated: !!user && !!token,
     isAdmin: user?.role === 'admin',

@@ -18,34 +18,25 @@ const Login: React.FC = () => {
     centroId: 1,
   });
 
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
 
   // Google OAuth handlers
   const handleGoogleSuccess = async (credentialResponse: any) => {
     console.log('Google Login Success:', credentialResponse);
+    setLoading(true);
+    setError("");
     
     try {
-      // Decode the JWT token to get user info
-      const token = credentialResponse.credential;
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      
-      const userInfo = JSON.parse(jsonPayload);
-      console.log('Decoded User Info:', userInfo);
-      console.log('User Name:', userInfo.name);
-      console.log('User Email:', userInfo.email);
-      console.log('User Picture:', userInfo.picture);
-      
-      // Here you would normally send the token to your backend
-      // For now, just show success
-      alert(`¡Login exitoso con Google!\nUsuario: ${userInfo.name}\nEmail: ${userInfo.email}`);
-      
-    } catch (err) {
-      console.error('Error decoding token:', err);
-      setError("Error procesando el login con Google");
+      const success = await googleLogin(credentialResponse.credential);
+      if (success) {
+        console.log('Login with Google successful');
+        // El usuario será redirigido automáticamente por el AuthContext
+      }
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      setError(err.message || "Error al iniciar sesión con Google");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,7 +97,7 @@ const Login: React.FC = () => {
     return (
       <div className="login-container">
         <div className="login-card">
-          <h2>Setup Inicial - Hospital System</h2>
+          <h2>Setup Inicial - SalusNet</h2>
           <p>Crear el primer usuario administrador</p>
 
           <form onSubmit={handleSetup}>
@@ -179,8 +170,8 @@ const Login: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h2>Hospital System</h2>
-        <p>Sistema de Gestión Hospitalaria</p>
+        <h2>SalusNet</h2>
+        <p>Sistema de Gestión Médica</p>
 
         <form onSubmit={handleLogin}>
           <div className="form-group">
@@ -232,7 +223,7 @@ const Login: React.FC = () => {
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
-              useOneTap
+              useOneTap={false}
               theme="outline"
               size="large"
               text="continue_with"

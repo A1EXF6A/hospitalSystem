@@ -3,7 +3,7 @@ import { CentroController } from "../controllers/centro.controller";
 import { EmpleadoController } from "../controllers/empleado.controller";
 import { EspecialidadController } from "../controllers/especialidad.controller";
 import { MedicoController } from "../controllers/medico.controller";
-import { validateUser, createUser, getUsers, updateUser, deleteUser } from "../controllers/usuario.controller";
+import { validateUser, createUser, getUsers, updateUser, deleteUser, googleLogin } from "../controllers/usuario.controller";
 import { createInitialAdmin } from "../controllers/setup.controller";
 import { authenticateToken, requireAdmin } from "../middleware/auth.middleware";
 
@@ -14,6 +14,7 @@ router.post("/setup/admin", createInitialAdmin);
 
 // Authentication endpoints (no authentication required)
 router.post("/usuarios/validate", validateUser);
+router.post("/usuarios/google-login", googleLogin);
 
 // Protected routes - require authentication and admin role
 router.use(authenticateToken);

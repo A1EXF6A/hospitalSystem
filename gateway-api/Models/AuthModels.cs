@@ -6,6 +6,11 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class GoogleLoginRequest
+{
+    public string Credential { get; set; } = string.Empty;
+}
+
 public class LoginResponse
 {
     public string Token { get; set; } = string.Empty;
@@ -17,6 +22,19 @@ public class UserValidationResponse
     public string Role { get; set; } = string.Empty;
     public int? CentroId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public int? DoctorId { get; set; }
+}
+
+public class GoogleLoginErrorResponse
+{
+    public string Message { get; set; } = string.Empty;
+    public GoogleUserInfo? UserInfo { get; set; }
+}
+
+public class GoogleUserInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
 }
 
 public class JwtTokenPayload
@@ -25,4 +43,5 @@ public class JwtTokenPayload
     public string Role { get; set; } = string.Empty;
     public int? CentroId { get; set; }
     public string Username { get; set; } = string.Empty;
+    public int? DoctorId { get; set; }
 }

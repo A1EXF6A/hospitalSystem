@@ -7,9 +7,17 @@ export class ConsultaController {
     try {
       const repo = AppDataSource.getRepository(Consulta);
       
-      // If centroId is set by middleware (for medicos), enforce it in the creation
-      if (req.query.centroId && req.user?.role === 'medico') {
-        req.body.centroId = Number(req.query.centroId);
+      // If user is medico, enforce their doctorId in the creation
+      if (req.user?.role === 'medico') {
+        if (!req.user.doctorId) {
+          return res.status(403).json({ message: "Usuario médico debe tener doctorId asociado" });
+        }
+        req.body.doctorId = req.user.doctorId;
+        
+        // Also enforce centroId if provided by middleware
+        if (req.query.centroId) {
+          req.body.centroId = Number(req.query.centroId);
+        }
       }
       
       const consulta = repo.create(req.body);
@@ -25,9 +33,19 @@ export class ConsultaController {
     try {
       const repo = AppDataSource.getRepository(Consulta);
       
-      // Build where clause - if centroId is set by middleware (for medicos), use it
+      // Build where clause
       let where: any = {};
-      if (req.query.centroId) {
+      
+      // For medical users, filter by their specific doctor ID
+      if (req.user?.role === 'medico') {
+        if (!req.user.doctorId) {
+          return res.status(403).json({ message: "Usuario médico debe tener doctorId asociado" });
+        }
+        
+        // Filter by the specific doctor ID from JWT
+        where.doctorId = req.user.doctorId;
+      } else if (req.query.centroId) {
+        // For admin users, use centroId filter if provided
         where.centroId = Number(req.query.centroId);
       }
       

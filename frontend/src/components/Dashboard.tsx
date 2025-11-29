@@ -15,6 +15,7 @@ interface Centro {
 interface Usuario {
   id: number;
   username: string;
+  correo: string;
   role: string;
   centroId?: number;
 }
@@ -108,6 +109,7 @@ const Dashboard: React.FC = () => {
     // Campos básicos para todos los tipos
     username: "",
     password: "",
+    correo: "",
     role: "empleado",
     centroId: "",
 
@@ -118,8 +120,7 @@ const Dashboard: React.FC = () => {
     // Para empleados
     cargo: "",
 
-    // Para médicos
-    correo: "",
+    // Para médicos (correo ya está arriba)
     telefono: "",
     especialidadId: "",
   });
@@ -215,6 +216,13 @@ const Dashboard: React.FC = () => {
       errors.password = "La contraseña debe tener al menos 6 caracteres";
     }
 
+    // Email is now required for ALL user types
+    if (!usuario.correo.trim()) {
+      errors.correo = "El correo es requerido";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(usuario.correo)) {
+      errors.correo = "Formato de correo inválido";
+    }
+
     if (
       (usuario.role === "medico" || usuario.role === "empleado") &&
       !usuario.centroId
@@ -243,12 +251,6 @@ const Dashboard: React.FC = () => {
     }
 
     if (usuario.role === "medico") {
-      if (!usuario.correo.trim()) {
-        errors.correo = "El correo es requerido";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(usuario.correo)) {
-        errors.correo = "Formato de correo inválido";
-      }
-
       if (!usuario.telefono.trim()) {
         errors.telefono = "El teléfono es requerido";
       } else if (!/^\+?[\d\s\-\(\)]{7,15}$/.test(usuario.telefono)) {
@@ -335,7 +337,7 @@ const Dashboard: React.FC = () => {
 
   const isUsuarioFormComplete = () => {
     // Basic fields required for all users
-    if (!newUsuario.username.trim() || !newUsuario.password.trim()) {
+    if (!newUsuario.username.trim() || !newUsuario.password.trim() || !newUsuario.correo.trim()) {
       return false;
     }
 
@@ -360,7 +362,6 @@ const Dashboard: React.FC = () => {
     // Doctor specific fields
     if (newUsuario.role === "medico") {
       if (
-        !newUsuario.correo.trim() ||
         !newUsuario.telefono.trim() ||
         !newUsuario.especialidadId
       ) {
@@ -415,36 +416,51 @@ const Dashboard: React.FC = () => {
     setError("");
 
     try {
+      console.log('Loading data for tab:', activeTab);
+      console.log('User role:', user?.role, 'isAdmin:', isAdmin);
+      
       if (activeTab === "overview") {
         // Load dashboard statistics
         await loadDashboardStats();
       } else if (activeTab === "centros" && isAdmin) {
+        console.log('Fetching centros...');
         const response = await adminAPI.getCentros();
-        setCentros(response.data);
+        console.log('Centros response:', response);
+        setCentros(Array.isArray(response.data) ? response.data : []);
       } else if (activeTab === "usuarios" && isAdmin) {
+        console.log('Fetching usuarios...');
         const response = await adminAPI.getUsuarios();
-        setUsuarios(response.data);
+        console.log('Usuarios response:', response);
+        setUsuarios(Array.isArray(response.data) ? response.data : []);
         // También cargar empleados y médicos para mostrarlos en la vista unificada
         const empleadosResponse = await adminAPI.getEmpleados();
-        setEmpleados(empleadosResponse.data);
+        console.log('Empleados response:', empleadosResponse);
+        setEmpleados(Array.isArray(empleadosResponse.data) ? empleadosResponse.data : []);
         const medicosResponse = await adminAPI.getMedicos();
-        setMedicos(medicosResponse.data);
+        console.log('Medicos response:', medicosResponse);
+        setMedicos(Array.isArray(medicosResponse.data) ? medicosResponse.data : []);
       } else if (activeTab === "especialidades" && isAdmin) {
+        console.log('Fetching especialidades...');
         const response = await adminAPI.getEspecialidades();
-        setEspecialidades(response.data);
+        console.log('Especialidades response:', response);
+        setEspecialidades(Array.isArray(response.data) ? response.data : []);
       } else if (activeTab === "consultas") {
+        console.log('Fetching consultas...');
         const response = await consultasAPI.getConsultas();
-        setConsultas(response.data);
+        console.log('Consultas response:', response);
+        setConsultas(Array.isArray(response.data) ? response.data : []);
       } else if (activeTab === "reportes" && isAdmin) {
         // Load specialties and centers for dropdowns
         const [centrosRes, medicosRes] = await Promise.all([
           adminAPI.getCentros(),
           adminAPI.getMedicos(),
         ]);
-        setCentros(centrosRes.data);
-        setMedicos(medicosRes.data);
+        setCentros(Array.isArray(centrosRes.data) ? centrosRes.data : []);
+        setMedicos(Array.isArray(medicosRes.data) ? medicosRes.data : []);
       }
     } catch (err: any) {
+      console.error("Error loading data:", err);
+      console.error("Error response:", err.response?.data);
       setError(err.response?.data?.message || "Error cargando datos");
     } finally {
       setLoading(false);
@@ -459,9 +475,9 @@ const Dashboard: React.FC = () => {
         consultasAPI.getConsultas(),
       ]);
 
-      const centrosData = centrosRes.data || [];
-      const medicosData = medicosRes.data || [];
-      const consultasData = consultasRes.data || [];
+      const centrosData = Array.isArray(centrosRes.data) ? centrosRes.data : [];
+      const medicosData = Array.isArray(medicosRes.data) ? medicosRes.data : [];
+      const consultasData = Array.isArray(consultasRes.data) ? consultasRes.data : [];
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -548,6 +564,7 @@ const Dashboard: React.FC = () => {
       const userData = {
         username: newUsuario.username,
         password: newUsuario.password,
+        correo: newUsuario.correo,
         role: newUsuario.role,
         centroId: newUsuario.centroId ? parseInt(newUsuario.centroId) : null,
       };
@@ -862,7 +879,7 @@ const Dashboard: React.FC = () => {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.text(`Página ${i} de ${pageCount}`, 170, 290);
-      doc.text("Sistema de Gestión Hospitalaria", 20, 290);
+      doc.text("SalusNet - Sistema de Gestión Médica", 20, 290);
     }
 
     const fileName = `reporte_${selectedDoctorForReport.nombre.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
@@ -950,7 +967,7 @@ const Dashboard: React.FC = () => {
           <p className="no-data">No hay consultas recientes</p>
         ) : (
           <div className="activity-list">
-            {dashboardStats.recentConsultas.map((consulta) => (
+            {Array.isArray(dashboardStats.recentConsultas) && dashboardStats.recentConsultas.map((consulta) => (
               <div key={consulta.id} className="activity-item">
                 <div className="activity-info">
                   <span className="patient-name">{consulta.paciente}</span>
@@ -1112,7 +1129,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {centros.map((centro) => (
+                {Array.isArray(centros) && centros.map((centro) => (
                   <tr key={centro.id}>
                     <td>{centro.id}</td>
                     <td>
@@ -1284,6 +1301,21 @@ const Dashboard: React.FC = () => {
 
         <div className="form-row">
           <div className="form-field">
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              value={newUsuario.correo}
+              onChange={(e) =>
+                setNewUsuario({ ...newUsuario, correo: e.target.value })
+              }
+              required
+              className={usuarioErrors.correo ? "error" : ""}
+            />
+            {usuarioErrors.correo && (
+              <span className="error-message">{usuarioErrors.correo}</span>
+            )}
+          </div>
+          <div className="form-field">
             <select
               value={newUsuario.role}
               onChange={(e) => {
@@ -1300,7 +1332,9 @@ const Dashboard: React.FC = () => {
               <span className="error-message">{usuarioErrors.role}</span>
             )}
           </div>
+        </div>
 
+        <div className="form-row">
           {/* Centro solo para médicos y empleados */}
           {(newUsuario.role === "medico" || newUsuario.role === "empleado") && (
             <div className="form-field">
@@ -1313,7 +1347,7 @@ const Dashboard: React.FC = () => {
                 className={usuarioErrors.centroId ? "error" : ""}
               >
                 <option value="">Seleccionar Centro</option>
-                {centros.map((centro) => (
+                {Array.isArray(centros) && centros.map((centro) => (
                   <option key={centro.id} value={centro.id}>
                     {centro.nombre}
                   </option>
@@ -1365,27 +1399,30 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Campos específicos para empleados */}
-        {newUsuario.role === "empleado" && <div className="form-row"></div>}
+        {newUsuario.role === "empleado" && (
+          <div className="form-row">
+            <div className="form-field">
+              <input
+                type="text"
+                placeholder="Cargo"
+                value={newUsuario.cargo}
+                onChange={(e) =>
+                  setNewUsuario({ ...newUsuario, cargo: e.target.value })
+                }
+                required
+                className={usuarioErrors.cargo ? "error" : ""}
+              />
+              {usuarioErrors.cargo && (
+                <span className="error-message">{usuarioErrors.cargo}</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Campos específicos para médicos */}
         {newUsuario.role === "medico" && (
           <>
             <div className="form-row">
-              <div className="form-field">
-                <input
-                  type="email"
-                  placeholder="Correo electrónico"
-                  value={newUsuario.correo}
-                  onChange={(e) =>
-                    setNewUsuario({ ...newUsuario, correo: e.target.value })
-                  }
-                  required
-                  className={usuarioErrors.correo ? "error" : ""}
-                />
-                {usuarioErrors.correo && (
-                  <span className="error-message">{usuarioErrors.correo}</span>
-                )}
-              </div>
               <div className="form-field">
                 <input
                   type="tel"
@@ -1403,8 +1440,6 @@ const Dashboard: React.FC = () => {
                   </span>
                 )}
               </div>
-            </div>
-            <div className="form-row">
               <div className="form-field">
                 <select
                   value={newUsuario.especialidadId}
@@ -1418,7 +1453,7 @@ const Dashboard: React.FC = () => {
                   className={usuarioErrors.especialidadId ? "error" : ""}
                 >
                   <option value="">Seleccionar Especialidad</option>
-                  {especialidades.map((esp) => (
+                  {Array.isArray(especialidades) && especialidades.map((esp) => (
                     <option key={esp.id} value={esp.id}>
                       {esp.nombre}
                     </option>
@@ -1454,13 +1489,14 @@ const Dashboard: React.FC = () => {
                 <tr>
                   <th>ID</th>
                   <th>Usuario</th>
+                  <th>Correo</th>
                   <th>Rol</th>
                   <th>Centro</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((usuario) => (
+                {Array.isArray(usuarios) && usuarios.map((usuario) => (
                   <tr key={usuario.id}>
                     <td>{usuario.id}</td>
                     <td>
@@ -1477,6 +1513,23 @@ const Dashboard: React.FC = () => {
                         />
                       ) : (
                         usuario.username
+                      )}
+                    </td>
+                    <td>
+                      {editingItem?.id === usuario.id &&
+                      editingItem?.type === "usuario" ? (
+                        <input
+                          type="email"
+                          value={editingItem.correo || ""}
+                          onChange={(e) =>
+                            setEditingItem({
+                              ...editingItem,
+                              correo: e.target.value,
+                            })
+                          }
+                        />
+                      ) : (
+                        usuario.correo || "N/A"
                       )}
                     </td>
                     <td>
@@ -1529,6 +1582,7 @@ const Dashboard: React.FC = () => {
                               onClick={() =>
                                 handleUpdate("usuario", usuario.id, {
                                   username: editingItem.username,
+                                  correo: editingItem.correo,
                                   role: editingItem.role,
                                   centroId: editingItem.centroId,
                                 })
@@ -1656,7 +1710,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {especialidades.map((especialidad) => (
+                {Array.isArray(especialidades) && especialidades.map((especialidad) => (
                   <tr key={especialidad.id}>
                     <td>{especialidad.id}</td>
                     <td>
@@ -1768,7 +1822,7 @@ const Dashboard: React.FC = () => {
             }}
           >
             <option value="">Seleccionar Doctor</option>
-            {medicos.map((medico) => (
+            {Array.isArray(medicos) && medicos.map((medico) => (
               <option key={medico.id} value={medico.id}>
                 Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
               </option>
@@ -1803,7 +1857,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {reportes.map((consulta) => (
+                {Array.isArray(reportes) && reportes.map((consulta) => (
                   <tr key={consulta.id}>
                     <td>{consulta.id}</td>
                     <td>{consulta.paciente}</td>
@@ -1857,7 +1911,7 @@ const Dashboard: React.FC = () => {
                 className={consultaErrors.doctorId ? "error" : ""}
               >
                 <option value="">Seleccionar Médico</option>
-                {medicos.map((medico) => (
+                {Array.isArray(medicos) && medicos.map((medico) => (
                   <option key={medico.id} value={medico.id}>
                     Dr/a. {medico.nombre} - {medico.especialidad?.nombre}
                   </option>
@@ -1887,7 +1941,7 @@ const Dashboard: React.FC = () => {
                 className={consultaErrors.centroId ? "error" : ""}
               >
                 <option value="">Seleccionar Centro</option>
-                {centros.map((centro) => (
+                {Array.isArray(centros) && centros.map((centro) => (
                   <option key={centro.id} value={centro.id}>
                     {centro.nombre}
                   </option>
@@ -1979,7 +2033,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {consultas.map((consulta) => (
+                {Array.isArray(consultas) && consultas.map((consulta) => (
                   <tr key={consulta.id}>
                     <td>{consulta.id}</td>
                     <td>

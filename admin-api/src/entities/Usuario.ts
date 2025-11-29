@@ -9,6 +9,9 @@ export class Usuario {
   @Column({ length: 100, unique: true })
   username!: string;
 
+  @Column({ length: 255, unique: true })
+  correo!: string;
+
   @Column({ length: 255 })
   password!: string; // Password hasheado
 

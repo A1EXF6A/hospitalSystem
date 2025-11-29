@@ -1,10 +1,15 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-const GATEWAY_URL =
-  import.meta.env.VITE_GATEWAY_URL || "http://localhost:5158";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL || "http://localhost:5158";
 const CONSULTAS_URL =
   import.meta.env.VITE_CONSULTAS_URL || "http://localhost:4000";
+
+console.log('API Configuration:', {
+  API_BASE_URL,
+  GATEWAY_URL,
+  CONSULTAS_URL
+});
 
 // Create axios instance
 const api = axios.create({
@@ -14,16 +19,24 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+  console.log('API request interceptor - token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log('API request:', config.method?.toUpperCase(), config.url);
   return config;
 });
 
 // Handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API response:', response.config.method?.toUpperCase(), response.config.url, '- Status:', response.status);
+    console.log('Response data:', response.data);
+    return response;
+  },
   (error) => {
+    console.error('API error:', error.config?.method?.toUpperCase(), error.config?.url, '- Status:', error.response?.status);
+    console.error('Error response:', error.response?.data);
     if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem("token");
       window.location.href = "/login";
@@ -35,6 +48,9 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (username: string, password: string) =>
     axios.post(`${GATEWAY_URL}/api/auth/login`, { username, password }),
+
+  googleLogin: (credential: string) =>
+    axios.post(`${GATEWAY_URL}/api/auth/google-login`, { credential }),
 
   validate: (token: string) =>
     axios.get(`${GATEWAY_URL}/api/auth/validate`, {
@@ -129,4 +145,3 @@ export const setupAPI = {
 };
 
 export default api;
-

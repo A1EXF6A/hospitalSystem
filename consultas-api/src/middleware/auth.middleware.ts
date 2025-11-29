@@ -9,6 +9,7 @@ declare global {
         id: number;
         role: string;
         centroId?: number;
+        doctorId?: number;
         username: string;
       };
     }
@@ -34,6 +35,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       id: decoded.nameid || decoded.id,
       role: decoded.role,
       centroId: decoded.centroId ? parseInt(decoded.centroId) : undefined,
+      doctorId: decoded.doctorId ? parseInt(decoded.doctorId) : undefined,
       username: decoded.unique_name || decoded.username
     };
 
