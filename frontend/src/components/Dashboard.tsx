@@ -55,7 +55,7 @@ interface Consulta {
 const Dashboard: React.FC = () => {
   const { user, logout, isAdmin, isMedico } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [editingItem, setEditingItem] = useState<any>(null);
   const [viewingItem, setViewingItem] = useState<any>(null);
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
   // Data states
   const [centros, setCentros] = useState<Centro[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [empleados, setEmpleados] = useState<Empleado[]>([]);
+  const [_empleados, setEmpleados] = useState<Empleado[]>([]);
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [especialidades, setEspecialidades] = useState<Especialidad[]>([]);
   const [consultas, setConsultas] = useState<Consulta[]>([]);
@@ -552,8 +552,7 @@ const Dashboard: React.FC = () => {
         centroId: newUsuario.centroId ? parseInt(newUsuario.centroId) : null,
       };
 
-      const userResponse = await adminAPI.createUsuario(userData);
-      const userId = userResponse.data.id;
+      await adminAPI.createUsuario(userData);
 
       // 2. Crear registro específico según el tipo de usuario
       if (newUsuario.role === "medico") {
@@ -829,7 +828,7 @@ const Dashboard: React.FC = () => {
     doc.line(20, yPosition - 5, 190, yPosition - 5);
 
     // Datos de las consultas
-    reportes.forEach((consulta, index) => {
+    reportes.forEach((consulta) => {
       if (yPosition > 270) {
         // Nueva página si es necesario
         doc.addPage();

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useGoogleOneTapLogin, GoogleLogin } from '@react-oauth/google';
 import { useAuth } from "../contexts/AuthContext";
 import { setupAPI } from "../services/api";
 import "./Login.css";
@@ -18,6 +19,48 @@ const Login: React.FC = () => {
   });
 
   const { login } = useAuth();
+
+  // Google OAuth handlers
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    console.log('Google Login Success:', credentialResponse);
+    
+    try {
+      // Decode the JWT token to get user info
+      const token = credentialResponse.credential;
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const userInfo = JSON.parse(jsonPayload);
+      console.log('Decoded User Info:', userInfo);
+      console.log('User Name:', userInfo.name);
+      console.log('User Email:', userInfo.email);
+      console.log('User Picture:', userInfo.picture);
+      
+      // Here you would normally send the token to your backend
+      // For now, just show success
+      alert(`¡Login exitoso con Google!\nUsuario: ${userInfo.name}\nEmail: ${userInfo.email}`);
+      
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      setError("Error procesando el login con Google");
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log('Google Login Error');
+    setError("Error al iniciar sesión con Google");
+  };
+
+  // Google One Tap configuration
+  useGoogleOneTapLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: handleGoogleError,
+    // Optional: disable one-tap if you want only the button
+    disabled: false,
+  });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,24 +111,15 @@ const Login: React.FC = () => {
 
           <form onSubmit={handleSetup}>
             <div className="form-group">
-              <label>Contraseña:</label>
-              <div className="password-input-container">
-                <input
-                  type={showSetupPassword ? "text" : "password"}
-                  value={setupData.password}
-                  onChange={(e) =>
-                    setSetupData({ ...setupData, password: e.target.value })
-                  }
-                  required
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowSetupPassword(!showSetupPassword)}
-                >
-                  {showSetupPassword ? "👁️" : "👁️‍🗨️"}
-                </button>
-              </div>
+              <label>Usuario:</label>
+              <input
+                type="text"
+                value={setupData.username}
+                onChange={(e) =>
+                  setSetupData({ ...setupData, username: e.target.value })
+                }
+                required
+              />
             </div>
 
             <div className="form-group">
@@ -187,6 +221,26 @@ const Login: React.FC = () => {
           </button>
         </form>
 
+        {/* Google OAuth Options */}
+        <div className="oauth-section">
+          <div className="divider">
+            <span>o continúa con</span>
+          </div>
+          
+          {/* Google One Tap Button (Oficial) */}
+          <div className="google-login-container">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap
+              theme="outline"
+              size="large"
+              text="continue_with"
+              shape="rectangular"
+            />
+          </div>
+        </div>
+
         <div className="login-footer">
           <button onClick={() => setShowSetup(true)} className="link-button">
             ¿Primera vez? Crear usuario administrador
@@ -208,4 +262,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-

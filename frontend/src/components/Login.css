@@ -146,3 +146,65 @@
 .password-toggle:hover {
   background-color: #f0f0f0;
 }
+
+/* OAuth Styles */
+.oauth-section {
+  margin-top: 1.5rem;
+}
+
+.divider {
+  text-align: center;
+  margin: 1.5rem 0 1rem 0;
+  position: relative;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.divider span {
+  background: white;
+  padding: 0 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.google-login-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.google-login-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.google-login-button:hover {
+  background: #f8f8f8;
+  border-color: #bbb;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
